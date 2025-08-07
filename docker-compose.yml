@@ -1,0 +1,50 @@
+# Copyright (c) 2025 Constantin Sclifos - sclifcon@gmail.com
+# Licensed under MIT License
+
+services:
+  mariadb:
+    image: mariadb:11.2
+    container_name: mariadb-vle
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MARIADB_CHARACTER_SET_SERVER: utf8mb4
+      MARIADB_COLLATION_SERVER: utf8mb4_unicode_ci
+      # Performance configuration
+      MARIADB_INNODB_BUFFER_POOL_SIZE: ${MARIADB_INNODB_BUFFER_POOL_SIZE}
+      MARIADB_INNODB_LOG_FILE_SIZE: ${MARIADB_INNODB_LOG_FILE_SIZE}
+      MARIADB_MAX_CONNECTIONS: ${MARIADB_MAX_CONNECTIONS}
+      MARIADB_QUERY_CACHE_SIZE: ${MARIADB_QUERY_CACHE_SIZE}
+      MARIADB_TMP_TABLE_SIZE: ${MARIADB_TMP_TABLE_SIZE}
+      MARIADB_MAX_HEAP_TABLE_SIZE: ${MARIADB_MAX_HEAP_TABLE_SIZE}
+    volumes:
+      - ./data:/var/lib/mysql
+      - ./backups:/backups
+      - ./init:/docker-entrypoint-initdb.d
+      - ./logs:/var/log/mysql
+    ports:
+      - "127.0.0.1:${MYSQL_PORT}:3306"
+    networks:
+      - mariadb-network
+    healthcheck:
+      test: ["CMD", "mariadb", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}", "-e", "SELECT 1;"]
+      interval: ${MARIADB_HEALTH_CHECK_INTERVAL}
+      timeout: ${MARIADB_HEALTH_CHECK_TIMEOUT}
+      retries: ${MARIADB_HEALTH_CHECK_RETRIES}
+      start_period: ${MARIADB_HEALTH_CHECK_START_PERIOD}
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-buffer-pool-size=${MARIADB_INNODB_BUFFER_POOL_SIZE}
+      --innodb-log-file-size=${MARIADB_INNODB_LOG_FILE_SIZE}
+      --max-connections=${MARIADB_MAX_CONNECTIONS}
+      --query-cache-size=${MARIADB_QUERY_CACHE_SIZE}
+      --tmp-table-size=${MARIADB_TMP_TABLE_SIZE}
+      --max-heap-table-size=${MARIADB_MAX_HEAP_TABLE_SIZE}
+networks:
+  mariadb-network:
+    driver: bridge
