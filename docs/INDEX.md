@@ -41,6 +41,21 @@ This directory contains comprehensive documentation for the MariaDB VLE project.
 - Compatibility information
 - System requirements
 
+### [MIGRATION_SYSTEM.md](./MIGRATION_SYSTEM.md)
+**Migration System** - Technical documentation for database migration with:
+- Cross-platform database migration
+- Migration exports with metadata
+- Permission management features
+- Automatic permission application
+- Environment user support
+
+### [MIGRATION_USER_GUIDE.md](./MIGRATION_USER_GUIDE.md)
+**Migration User Guide** - User-friendly guide for database migration with:
+- Step-by-step migration workflows
+- Permission management examples
+- Cross-platform migration scenarios
+- Troubleshooting and best practices
+
 ## 🚀 Quick Navigation
 
 ### For Users

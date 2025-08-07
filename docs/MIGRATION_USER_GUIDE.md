@@ -420,6 +420,19 @@ migrations/
 # 2. Ask for first confirmation (yes/no)
 # 3. Ask for second confirmation (type database name)
 # 4. Drop the database if both confirmations are correct
+
+# Manage database permissions
+./scripts/database-migrate.sh
+# Choose option 10: Manage database permissions
+# 
+# The script will:
+# 1. Show available databases in container
+# 2. Let you select a database
+# 3. Provide permission options:
+#    - Check current permissions for environment user
+#    - Apply permissions for environment user (MYSQL_USER/MYSQL_PASSWORD)
+#    - Apply permissions for custom user
+#    - Back to main menu
 ```
 
 ### Export Commands
@@ -454,6 +467,10 @@ migrations/
 # Drop database (with double confirmation)
 ./scripts/database-migrate.sh
 # Option 9: Drop database (with double confirmation)
+
+# Manage database permissions
+./scripts/database-migrate.sh
+# Option 10: Manage database permissions
 ```
 
 ### File Locations
@@ -468,7 +485,20 @@ migrations/
 MYSQL_ROOT_PASSWORD=your_password
 SOURCE_MYSQL_USER=your_user
 SOURCE_MYSQL_PASSWORD=your_password
+
+# For automatic permission application
+MYSQL_USER=your_application_user
+MYSQL_PASSWORD=your_application_password
 ```
+
+### Automatic Permission Application
+After successful migrations (single database, SQL dump, migration export), the system automatically:
+- Applies permissions for the environment user (`MYSQL_USER`)
+- Creates the user if it doesn't exist
+- Grants all privileges on the migrated database
+- Flushes privileges to ensure immediate availability
+
+**Note**: If `MYSQL_USER` or `MYSQL_PASSWORD` are not defined, the system will show a warning and skip permission application.
 
 ---
 

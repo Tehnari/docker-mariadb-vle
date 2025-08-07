@@ -71,7 +71,9 @@ migrations/
 6. **List available databases** - Show databases
 7. **List migration exports** - Show available exports
 8. **Test database connection** - Test connections
-9. **Exit**
+9. **Drop database (with double confirmation)** - Safely drop databases
+10. **Manage database permissions** - Check and apply user permissions
+11. **Exit**
 
 #### Migration Import Features
 - ✅ Metadata validation and display
@@ -80,6 +82,52 @@ migrations/
 - ✅ Checksum validation
 - ✅ Existing database handling
 - ✅ Compressed file support
+- ✅ Automatic permission application after successful migrations
+- ✅ Database permission management for environment users
+- ✅ Custom user permission support
+
+## Permission Management
+
+### Overview
+The migration system includes comprehensive permission management to ensure that application users have proper access to migrated databases.
+
+### Features
+- **Automatic Permission Application** - Permissions are automatically applied after successful migrations
+- **Environment User Support** - Uses `MYSQL_USER` and `MYSQL_PASSWORD` from environment variables
+- **Custom User Support** - Apply permissions for custom users with manual input
+- **Permission Checking** - Verify current user permissions with detailed output
+- **User Creation** - Automatically creates users if they don't exist
+- **Privilege Flushing** - Ensures permissions are immediately available
+
+### Permission Management Menu
+When selecting option 10 "Manage database permissions", you can:
+
+1. **Check current permissions** - Verify if environment user has access to selected database
+2. **Apply permissions for environment user** - Grant permissions using `MYSQL_USER`/`MYSQL_PASSWORD`
+3. **Apply permissions for custom user** - Grant permissions for manually specified user
+4. **Back to main menu** - Return to main migration menu
+
+### Automatic Permission Application
+After successful migrations (single database, SQL dump, migration export), the system automatically:
+- Applies permissions for the environment user (`MYSQL_USER`)
+- Creates the user if it doesn't exist
+- Grants all privileges on the migrated database
+- Flushes privileges to ensure immediate availability
+
+### Example Workflow
+```bash
+# 1. Migrate a database
+./scripts/database-migrate.sh
+# Select option 1: Migrate single database
+# Choose source database and target name
+
+# 2. Check permissions (automatic after migration)
+# System automatically applies permissions for MYSQL_USER
+
+# 3. Verify permissions manually
+# Select option 10: Manage database permissions
+# Choose database and option 1: Check current permissions
+```
 
 ## Metadata Format
 

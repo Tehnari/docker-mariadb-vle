@@ -262,6 +262,9 @@ migrate_single_database() {
         print_status "Database migrated successfully: $source_db -> $target_db"
         print_status "Migration completed in ${duration} seconds"
         print_status "Source database size: ${source_size}MB"
+        
+        # Apply permissions after successful migration
+        apply_permissions_after_migration "$target_db"
     else
         print_error "Migration failed for database: $source_db"
         return 1
@@ -344,6 +347,182 @@ drop_database() {
     fi
 }
 
+# Function to check database permissions for a user
+check_database_permissions() {
+    local database="$1"
+    local username="$2"
+    
+    print_status "Checking permissions for user '$username' on database '$database'..."
+    
+    # Check if user exists
+    local user_exists=$(docker compose exec -T mariadb mariadb -u root -p"${MYSQL_ROOT_PASSWORD}" -e "SELECT COUNT(*) FROM mysql.user WHERE User='$username';" 2>/dev/null | tail -n 1)
+    
+    if [ "$user_exists" -eq 0 ]; then
+        print_warning "User '$username' does not exist in container"
+        return 1
+    fi
+    
+    # Check current permissions
+    local permissions=$(docker compose exec -T mariadb mariadb -u root -p"${MYSQL_ROOT_PASSWORD}" -e "SHOW GRANTS FOR '$username'@'%';" 2>/dev/null)
+    
+    if echo "$permissions" | grep -q "GRANT.*ON.*\`$database\`.*TO.*\`$username\`@\`%\`"; then
+        print_status "✓ User '$username' has permissions on database '$database'"
+        return 0
+    else
+        print_warning "User '$username' does not have permissions on database '$database'"
+        print_warning "Current grants for user '$username':"
+        echo "$permissions" | while read -r line; do
+            echo "  $line"
+        done
+        return 1
+    fi
+}
+
+# Function to apply correct permissions for database user
+apply_database_permissions() {
+    local database="$1"
+    local username="$2"
+    local password="$3"
+    
+    print_status "Applying permissions for user '$username' on database '$database'..."
+    
+    # Check if user exists, create if not
+    local user_exists=$(docker compose exec -T mariadb mariadb -u root -p"${MYSQL_ROOT_PASSWORD}" -e "SELECT COUNT(*) FROM mysql.user WHERE User='$username';" 2>/dev/null | tail -n 1)
+    
+    if [ "$user_exists" -eq 0 ]; then
+        print_status "Creating user '$username'..."
+        docker compose exec -T mariadb mariadb -u root -p"${MYSQL_ROOT_PASSWORD}" -e "CREATE USER '$username'@'%' IDENTIFIED BY '$password';"
+        
+        if [ $? -eq 0 ]; then
+            print_status "✓ User '$username' created successfully"
+        else
+            print_error "Failed to create user '$username'"
+            return 1
+        fi
+    else
+        print_status "User '$username' already exists"
+    fi
+    
+    # Grant permissions on the database
+    print_status "Granting permissions on database '$database'..."
+    docker compose exec -T mariadb mariadb -u root -p"${MYSQL_ROOT_PASSWORD}" -e "GRANT ALL PRIVILEGES ON \`$database\`.* TO '$username'@'%';"
+    
+    if [ $? -eq 0 ]; then
+        print_status "✓ Permissions granted successfully"
+    else
+        print_error "Failed to grant permissions"
+        return 1
+    fi
+    
+    # Flush privileges
+    print_status "Flushing privileges..."
+    docker compose exec -T mariadb mariadb -u root -p"${MYSQL_ROOT_PASSWORD}" -e "FLUSH PRIVILEGES;"
+    
+    if [ $? -eq 0 ]; then
+        print_status "✓ Privileges flushed successfully"
+    else
+        print_error "Failed to flush privileges"
+        return 1
+    fi
+    
+    print_status "✓ Database permissions applied successfully for user '$username' on database '$database'"
+    return 0
+}
+
+# Function to check and apply permissions for all databases
+check_and_apply_permissions() {
+    echo ""
+    print_status "Database Permission Management"
+    echo "=================================="
+    
+    if [ ${#CONTAINER_DBS[@]} -eq 0 ]; then
+        print_error "No databases available in container"
+        return 1
+    fi
+    
+    echo "Available databases in container:"
+    for i in "${!CONTAINER_DBS[@]}"; do
+        echo "  $((i+1)). ${CONTAINER_DBS[$i]}"
+    done
+    
+    read -p "Select database to check/apply permissions (number): " DB_CHOICE
+    
+    if [[ ! "$DB_CHOICE" =~ ^[0-9]+$ ]] || [ "$DB_CHOICE" -lt 1 ] || [ "$DB_CHOICE" -gt ${#CONTAINER_DBS[@]} ]; then
+        print_error "Invalid selection"
+        return 1
+    fi
+    
+    local selected_db="${CONTAINER_DBS[$((DB_CHOICE-1))]}"
+    
+    echo ""
+    echo "Permission Options:"
+    echo "1. Check current permissions"
+    echo "2. Apply permissions for environment user"
+    echo "3. Apply permissions for custom user"
+    echo "4. Back to main menu"
+    echo ""
+    
+    read -p "Select option (1-4): " PERM_CHOICE
+    
+    case $PERM_CHOICE in
+        1)
+            # Check permissions for environment user
+            if [ -n "$MYSQL_USER" ]; then
+                check_database_permissions "$selected_db" "$MYSQL_USER"
+            else
+                print_error "MYSQL_USER not defined in environment"
+            fi
+            ;;
+        2)
+            # Apply permissions for environment user
+            if [ -n "$MYSQL_USER" ] && [ -n "$MYSQL_PASSWORD" ]; then
+                apply_database_permissions "$selected_db" "$MYSQL_USER" "$MYSQL_PASSWORD"
+            else
+                print_error "MYSQL_USER or MYSQL_PASSWORD not defined in environment"
+            fi
+            ;;
+        3)
+            # Apply permissions for custom user
+            read -p "Enter username: " CUSTOM_USER
+            read -s -p "Enter password: " CUSTOM_PASSWORD
+            echo ""
+            
+            if [ -n "$CUSTOM_USER" ] && [ -n "$CUSTOM_PASSWORD" ]; then
+                apply_database_permissions "$selected_db" "$CUSTOM_USER" "$CUSTOM_PASSWORD"
+            else
+                print_error "Username and password are required"
+            fi
+            ;;
+        4)
+            return 0
+            ;;
+        *)
+            print_error "Invalid option"
+            return 1
+            ;;
+    esac
+}
+
+# Function to apply permissions after successful migration
+apply_permissions_after_migration() {
+    local database="$1"
+    
+    # Only apply if environment user is defined
+    if [ -n "$MYSQL_USER" ] && [ -n "$MYSQL_PASSWORD" ]; then
+        print_status "Applying permissions for environment user '$MYSQL_USER' on migrated database '$database'..."
+        
+        if apply_database_permissions "$database" "$MYSQL_USER" "$MYSQL_PASSWORD"; then
+            print_status "✓ Permissions applied successfully after migration"
+        else
+            print_warning "Failed to apply permissions after migration"
+            print_warning "You may need to manually grant permissions for user '$MYSQL_USER'"
+        fi
+    else
+        print_warning "MYSQL_USER or MYSQL_PASSWORD not defined - skipping permission application"
+        print_warning "You may need to manually grant permissions for your application user"
+    fi
+}
+
 # Function to show migration options
 show_migration_menu() {
     echo ""
@@ -357,7 +536,8 @@ show_migration_menu() {
     echo "7. List migration exports"
     echo "8. Test database connection"
     echo "9. Drop database (with double confirmation)"
-    echo "10. Exit"
+    echo "10. Manage database permissions"
+    echo "11. Exit"
     echo ""
 }
 
@@ -399,6 +579,9 @@ import_sql_dump() {
         duration=$((end_time - start_time))
         print_status "SQL dump imported successfully!"
         print_status "Import completed in ${duration} seconds"
+        
+        # Apply permissions after successful import
+        apply_permissions_after_migration "$TARGET_DB"
     else
         print_error "Import failed!"
         return 1
@@ -785,6 +968,9 @@ import_migration_export() {
         print_status "Migration import completed successfully!"
         print_status "Database '$TARGET_DB' imported in ${duration} seconds"
         
+        # Apply permissions after successful import
+        apply_permissions_after_migration "$TARGET_DB"
+        
         # Refresh container database list
         get_container_databases
     else
@@ -940,7 +1126,7 @@ main() {
     # Main menu loop
     while true; do
         show_migration_menu
-        read -p "Select option (1-10): " CHOICE
+        read -p "Select option (1-11): " CHOICE
         
         case $CHOICE in
             1)
@@ -1006,6 +1192,9 @@ main() {
                 drop_database
                 ;;
             10)
+                check_and_apply_permissions
+                ;;
+            11)
                 print_status "Exiting..."
                 exit 0
                 ;;

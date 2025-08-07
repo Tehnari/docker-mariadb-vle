@@ -4,7 +4,7 @@
 > Licensed under MIT License - see [LICENSE](LICENSE) for details
 
 A complete MariaDB setup with automated daily backups using `mariadb-backup`, compression, and systemd service management.
-Crossplatform cases can also be used carefully (e.g. with the use of the scp command).
+Crossplatform cases can also be used, BUT carefully (e.g. with the use of the scp command).
 
 ## Features
 
@@ -82,6 +82,7 @@ sudo systemctl start docker-mariadb-vle
 - **Progress Tracking**: Improved progress bars with proper size calculation and PV installation check
 - **Real-time Updates**: Database list refreshes automatically after imports
 - **PV Installation Check**: Automatic detection and installation guidance for progress bars
+- **NEW**: Database permission management and automatic permission application
 
 ### Enhanced Database Export
 ```bash

@@ -973,3 +973,61 @@
 - [x] Documentation updated with conservative values
 
 **Status**: ✅ **PERFORMANCE TUNER OPTIMIZED** - Performance tuner now generates balanced settings for fast startup while maintaining performance benefits
+
+---
+
+# 🔐 Database Permission Management Restoration
+
+## ✅ Completed Tasks
+
+### 1. Restored Permission Management Functions
+- **Restored**: `check_database_permissions()` - Verify user permissions on databases
+- **Restored**: `apply_database_permissions()` - Apply correct permissions for users
+- **Restored**: `check_and_apply_permissions()` - Interactive permission management menu
+- **Restored**: `apply_permissions_after_migration()` - Automatic permission application after migration
+- **Enhanced**: All migration functions to automatically apply permissions after successful operations
+
+### 2. Restored Permission Management Features
+- **User Creation**: Automatically creates users if they don't exist
+- **Environment User Support**: Uses MYSQL_USER and MYSQL_PASSWORD from environment
+- **Custom User Support**: Apply permissions for custom users with manual input
+- **Permission Checking**: Verify current user permissions with detailed output
+- **Privilege Flushing**: Ensures permissions are immediately available
+- **Regex Pattern**: Fixed permission checking to handle MariaDB grant format correctly
+
+### 3. Restored Integration with Migration System
+- **Automatic Application**: Permissions applied after successful migration/import
+- **Menu Integration**: Restored option 10 "Manage database permissions" to main menu
+- **Database Selection**: Interactive database selection for permission management
+- **Permission Options**: Check current, apply for environment user, apply for custom user
+- **Error Handling**: Comprehensive error messages and validation
+
+### 4. Restored User Experience
+- **Interactive Menu**: User-friendly permission management interface
+- **Detailed Feedback**: Clear status messages for all permission operations
+- **Safety Features**: Validation and confirmation for permission changes
+- **Integration**: Seamless integration with existing migration workflow
+
+## 📊 Permission Management Restoration Metrics
+
+- **Functions Restored**: 4 permission management functions
+- **Menu Options**: 1 main menu option restored (option 10)
+- **Permission Operations**: 3 types (check, apply environment user, apply custom user)
+- **Integration Points**: 4 migration functions enhanced with automatic permission application
+- **Error Handling**: Comprehensive validation and error messages
+- **User Experience**: Interactive menu with clear feedback
+
+## 🎯 Permission Management Restoration Success Criteria
+
+- [x] Permission checking functionality restored and working correctly
+- [x] Permission application functionality restored and working correctly
+- [x] Automatic permission application after migration restored
+- [x] Interactive permission management menu restored and working
+- [x] Environment user support restored and working
+- [x] Custom user support restored and working
+- [x] Regex pattern fixed for MariaDB grant format
+- [x] All functions tested and verified working
+- [x] Integration with migration system restored
+- [x] Menu options updated (1-11 instead of 1-10)
+
+**Status**: ✅ **PERMISSION MANAGEMENT RESTORED** - Database migration script now includes comprehensive permission management with automatic application after successful migrations
