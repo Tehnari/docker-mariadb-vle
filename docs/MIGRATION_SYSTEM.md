@@ -85,6 +85,7 @@ migrations/
 - ✅ Automatic permission application after successful migrations
 - ✅ Database permission management for environment users
 - ✅ Custom user permission support
+- ✅ Source database availability check with graceful degradation
 
 ## Permission Management
 
@@ -128,6 +129,26 @@ After successful migrations (single database, SQL dump, migration export), the s
 # Select option 10: Manage database permissions
 # Choose database and option 1: Check current permissions
 ```
+
+### Source Database Availability Check
+The migration script automatically checks source database availability at startup:
+
+**When Source is Available:**
+- All migration options are enabled
+- Source database list is populated
+- Direct migration features work normally
+
+**When Source is Not Available:**
+- Clear warning message displayed
+- Source-dependent options (1, 2) are disabled
+- Import and management features remain available
+- Graceful degradation with helpful error messages
+
+**Common Issues Detected:**
+- Missing or incorrect credentials
+- Source database not running
+- Network connectivity issues
+- Firewall blocking connections
 
 ## Metadata Format
 

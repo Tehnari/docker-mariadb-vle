@@ -83,6 +83,7 @@ sudo systemctl start docker-mariadb-vle
 - **Real-time Updates**: Database list refreshes automatically after imports
 - **PV Installation Check**: Automatic detection and installation guidance for progress bars
 - **NEW**: Database permission management and automatic permission application
+- **NEW**: Source database availability check with graceful degradation
 
 ### Enhanced Database Export
 ```bash

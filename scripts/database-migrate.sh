@@ -90,6 +90,44 @@ check_pv_installation() {
     fi
 }
 
+# Function to check source database availability
+check_source_availability() {
+    print_status "Checking source database availability..."
+    
+    SOURCE_AVAILABLE=false
+    
+    if [ -z "$SOURCE_MYSQL_USER" ] || [ -z "$SOURCE_MYSQL_PASSWORD" ]; then
+        print_warning "Source database credentials not provided in environment"
+        print_warning "Source-dependent features will be disabled"
+        return 0
+    fi
+    
+    if ! command -v mysql &> /dev/null; then
+        print_warning "MySQL client not found"
+        print_warning "Source-dependent features will be disabled"
+        return 0
+    fi
+    
+    # Try to connect to source database with timeout
+    if timeout 5 mysql -h localhost -P 3306 -u "$SOURCE_MYSQL_USER" -p"$SOURCE_MYSQL_PASSWORD" -e "SELECT 1;" &>/dev/null; then
+        print_status "✓ Source database is available"
+        SOURCE_AVAILABLE=true
+    else
+        print_warning "⚠️  Source database is not available"
+        print_warning "This could be due to:"
+        print_warning "  - Incorrect credentials (SOURCE_MYSQL_USER/SOURCE_MYSQL_PASSWORD)"
+        print_warning "  - Source database not running"
+        print_warning "  - Network connectivity issues"
+        print_warning "  - Firewall blocking connection"
+        echo ""
+        print_warning "Source-dependent features will be disabled:"
+        print_warning "  - Migrate single database"
+        print_warning "  - Migrate all databases"
+        echo ""
+        print_status "You can still use import features and database management"
+    fi
+}
+
 # Function to validate environment variables
 validate_environment() {
     local missing_vars=()
@@ -154,6 +192,12 @@ get_source_databases() {
     print_status "Getting databases from source (localhost:3306)..."
     
     SOURCE_DBS=()
+    
+    # Skip if source is not available
+    if [ "$SOURCE_AVAILABLE" != true ]; then
+        print_warning "Skipping source database list - source not available"
+        return 0
+    fi
     
     # Try to connect to source database
     if command -v mysql &> /dev/null; then
@@ -527,8 +571,15 @@ apply_permissions_after_migration() {
 show_migration_menu() {
     echo ""
     echo "Migration Options:"
-    echo "1. Migrate single database"
-    echo "2. Migrate all databases"
+    
+    if [ "$SOURCE_AVAILABLE" = true ]; then
+        echo "1. Migrate single database"
+        echo "2. Migrate all databases"
+    else
+        echo "1. Migrate single database (DISABLED - source not available)"
+        echo "2. Migrate all databases (DISABLED - source not available)"
+    fi
+    
     echo "3. Import SQL dump file"
     echo "4. Import from compressed backup"
     echo "5. Import from migration export"
@@ -1116,6 +1167,9 @@ main() {
     # Check if pv is installed for progress bars
     check_pv_installation
     
+    # Check source database availability
+    check_source_availability
+    
     # Check if container is running
     check_container
     
@@ -1130,6 +1184,12 @@ main() {
         
         case $CHOICE in
             1)
+                if [ "$SOURCE_AVAILABLE" != true ]; then
+                    print_error "Source database is not available"
+                    print_error "Please check your source database connection and credentials"
+                    continue
+                fi
+                
                 if [ ${#SOURCE_DBS[@]} -eq 0 ]; then
                     print_error "No source databases available"
                     continue
@@ -1156,6 +1216,12 @@ main() {
                 migrate_single_database "$SELECTED_DB" "$TARGET_DB"
                 ;;
             2)
+                if [ "$SOURCE_AVAILABLE" != true ]; then
+                    print_error "Source database is not available"
+                    print_error "Please check your source database connection and credentials"
+                    continue
+                fi
+                
                 if [ ${#SOURCE_DBS[@]} -eq 0 ]; then
                     print_error "No source databases available"
                     continue

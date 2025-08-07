@@ -28,6 +28,19 @@
 # Choose option 5: Import from migration export
 ```
 
+### Source Database Availability
+The migration script automatically checks source database availability:
+
+**✅ Source Available:**
+- All migration options enabled
+- Direct database migration possible
+
+**⚠️ Source Not Available:**
+- Clear warning displayed
+- Source-dependent options disabled
+- Import and management features still work
+- Helpful troubleshooting guidance provided
+
 ## 📊 Understanding Migration Types
 
 ### Migration Exports vs Standard Exports
@@ -471,6 +484,17 @@ migrations/
 # Manage database permissions
 ./scripts/database-migrate.sh
 # Option 10: Manage database permissions
+```
+
+### Source-Dependent Commands (Require Source Database)
+```bash
+# Migrate single database (disabled if source unavailable)
+./scripts/database-migrate.sh
+# Option 1: Migrate single database
+
+# Migrate all databases (disabled if source unavailable)
+./scripts/database-migrate.sh
+# Option 2: Migrate all databases
 ```
 
 ### File Locations
