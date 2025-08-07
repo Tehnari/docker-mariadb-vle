@@ -1,204 +1,220 @@
-# MariaDB VLE - Setup Guide
+# MariaDB VLE Setup Guide
 
-## 🚀 Quick Setup
+This guide explains how to set up MariaDB VLE using the template-based approach.
 
-### Prerequisites
-- Docker and Docker Compose installed
-- Git (for cloning the repository)
-- Basic Linux command line knowledge
+## 🚀 Quick Start
 
-### Step 1: Download and Prepare
+### Basic Setup (Default Configuration)
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd docker-mariadb-vle
 
-# Or download and extract the project files
-# Ensure you have all the files in the docker-mariadb-vle directory
+# Run setup with defaults
+./scripts/setup.sh
 ```
 
-### Step 2: Configure Environment (CRITICAL)
-**⚠️ THIS STEP IS CRITICAL - DO NOT SKIP**
-
-Before starting the container, you must configure the database password:
-
+### Custom Instance Setup
 ```bash
-# Edit the environment file
+# Set up with custom instance name and port
+./scripts/setup.sh --instance-name production --port 3367
+
+# Set up with systemd service
+./scripts/setup.sh --instance-name staging --port 3368 --install-systemd
+
+# Set up with daily backups
+./scripts/setup.sh --instance-name dev --port 3369 --setup-cron
+
+# Complete setup (everything)
+./scripts/setup.sh --instance-name prod --port 3370 --install-systemd --setup-cron
+```
+
+## 📋 Setup Options
+
+### Instance Configuration
+- `--instance-name NAME` - Set instance name (default: mariadb-vle)
+- `--port PORT` - Set port (default: 3366)
+
+### Service Management
+- `--install-systemd` - Install as systemd service
+- `--setup-cron` - Setup daily backups
+
+### Maintenance
+- `--reset` - Reset to template level (remove all configuration)
+- `--help` - Show help information
+
+## 🔧 What the Setup Script Does
+
+### 1. Instance Configuration
+- Creates necessary directories (data, backups, logs, etc.)
+- Updates `.env` file with instance name and port
+- Generates `docker-compose.yml` from template
+- Sets proper permissions for scripts
+
+### 2. Template-Based Approach
+- Uses `docker-compose.template.yml` as base
+- Uses `docker-mariadb-vle.service.template` for systemd
+- Replaces placeholders: `{{INSTANCE_NAME}}`, `{{INSTANCE_PORT}}`
+- Creates unique networks and container names
+
+### 3. Systemd Service (Optional)
+- Generates service file from template
+- Installs to `/etc/systemd/system/`
+- Enables auto-start on boot
+- Provides systemctl commands
+
+### 4. Cron Backups (Optional)
+- Sets up daily backups at 2:00 AM
+- Creates backup log file
+- Removes old cron entries if they exist
+
+## 🔄 Reset Functionality
+
+### Reset to Template Level
+```bash
+# Reset everything to template state
+./scripts/setup.sh --reset
+```
+
+**What Reset Does:**
+- Stops and removes containers
+- Removes generated files (`docker-compose.yml`, service files)
+- Resets `.env` to template values
+- Clears all data directories
+- Removes cron jobs
+
+### Complete Reset and Setup
+```bash
+# Reset and set up fresh instance
+./scripts/setup.sh --reset
+./scripts/setup.sh --instance-name production --port 3367
+```
+
+## 📁 Multi-Instance Setup
+
+### Method 1: Copy and Configure
+```bash
+# Copy the project folder
+cp -r docker-mariadb-vle docker-mariadb-vle-production
+cp -r docker-mariadb-vle docker-mariadb-vle-staging
+
+# Configure each instance
+cd docker-mariadb-vle-production
+./scripts/setup.sh --instance-name production --port 3367
+
+cd ../docker-mariadb-vle-staging
+./scripts/setup.sh --instance-name staging --port 3368
+```
+
+### Method 2: Reset and Reconfigure
+```bash
+# In the same folder, reset and reconfigure
+./scripts/setup.sh --reset
+./scripts/setup.sh --instance-name production --port 3367
+
+# For another instance, copy the folder first
+cp -r docker-mariadb-vle docker-mariadb-vle-staging
+cd docker-mariadb-vle-staging
+./scripts/setup.sh --instance-name staging --port 3368
+```
+
+## 🔒 Security Considerations
+
+### Password Configuration
+**CRITICAL:** Always set proper passwords in `.env` before starting:
+```bash
+# Edit the .env file
 nano .env
+
+# Set these values:
+MYSQL_ROOT_PASSWORD=your_secure_root_password
+MYSQL_PASSWORD=your_secure_user_password
 ```
 
-**Replace the placeholder password:**
-```
-MYSQL_ROOT_PASSWORD=your_secure_root_password_here
-```
+### Instance Isolation
+Each instance has:
+- Unique container name
+- Unique port assignment
+- Unique network name
+- Independent data directories
+- Isolated configuration
 
-**With a real password:**
-```
-MYSQL_ROOT_PASSWORD=my_secure_password_2024
-```
+## 📊 Verification
 
-**Why this is critical:**
-- The container initializes with the password from `.env`
-- Once initialized, the password cannot be changed without data loss
-- Using placeholder passwords will cause authentication failures
-- All scripts will fail to connect to the database
-
-### Step 3: Start the Container
+### Check Configuration
 ```bash
-# Start the MariaDB container
-docker compose up -d
-
-# Check if it's running
-docker compose ps
-```
-
-### Step 4: Verify Installation
-```bash
-# Test database connection
-docker compose exec mariadb mariadb -u root -p"my_secure_password_2024" -e "SELECT 1;"
-
-# Test migration script
-./scripts/database-migrate.sh
-```
-
-## 🔧 Advanced Configuration
-
-### Performance Optimization
-```bash
-# Analyze your system
-./scripts/performance-tuner.sh --analyze
-
-# Generate optimized settings
-./scripts/performance-tuner.sh --generate
-
-# Apply optimized settings
-./scripts/performance-tuner.sh --apply
-```
-
-### Setup Daily Backups
-```bash
-# Install cron job for daily backups
-./scripts/setup-cron.sh
-```
-
-### Install as System Service
-```bash
-# Install as systemd service
-sudo ./install.sh
-
-# Start the service
-sudo systemctl start docker-mariadb-vle
-
-# Enable auto-start
-sudo systemctl enable docker-mariadb-vle
-```
-
-## 🚨 Troubleshooting
-
-### Issue: "Access denied for user 'root'@'localhost'"
-**Symptoms:**
-- Container starts but scripts fail with authentication errors
-- Migration script shows "MariaDB container is not responding"
-
-**Solution:**
-```bash
-# 1. Stop the container
-docker compose down
-
-# 2. Check current password
-grep MYSQL_ROOT_PASSWORD .env
-
-# 3. If it shows placeholder, update it
-nano .env
-# Change to real password
-
-# 4. Remove old data (this will delete all databases)
-sudo rm -rf data/
-
-# 5. Restart with new password
-docker compose up -d
-```
-
-### Issue: Container won't start
-```bash
-# Check Docker Compose syntax
+# Verify docker-compose configuration
 docker compose config
 
-# Check logs
-docker compose logs mariadb
-
-# Check available ports
-netstat -tlnp | grep 3366
+# Check instance settings
+grep INSTANCE .env
 ```
 
-### Issue: Permission denied
+### Start and Test
 ```bash
-# Fix script permissions
-chmod +x ./scripts/*.sh
+# Start the instance
+docker compose up -d
 
-# Fix directory permissions
-chmod 755 ./migrations/
-chmod 755 ./backups/
+# Check status
+docker compose ps
+
+# Test database connection
+docker compose exec mariadb mariadb -u root -p -e "SHOW DATABASES;"
 ```
 
-## 📋 Verification Checklist
+## 🛠️ Troubleshooting
 
-After setup, verify these items:
+### Common Issues
 
-- [ ] Container is running: `docker compose ps`
-- [ ] Container is healthy: Status shows "(healthy)"
-- [ ] Database connection works: `docker compose exec mariadb mariadb -u root -p"password" -e "SELECT 1;"`
-- [ ] Migration script starts: `./scripts/database-migrate.sh`
-- [ ] Export script starts: `./scripts/database-export.sh`
-- [ ] Backup script works: `./scripts/backup-daily.sh`
+**1. Port Already in Use**
+```bash
+# Choose a different port
+./scripts/setup.sh --instance-name production --port 3368
+```
 
-## 🔒 Security Notes
+**2. Instance Name Conflicts**
+```bash
+# Choose a different instance name
+./scripts/setup.sh --instance-name prod --port 3367
+```
 
-### Password Security
-- Use strong, unique passwords
-- Never use placeholder passwords in production
-- Store passwords securely
-- Consider using password managers
+**3. Permission Issues**
+```bash
+# Make scripts executable
+chmod +x scripts/*.sh
+```
 
-### Network Security
-- Container is bound to localhost (127.0.0.1)
-- No external port exposure by default
-- Use firewall rules if needed
+**4. Reset and Start Fresh**
+```bash
+# Complete reset
+./scripts/setup.sh --reset
+./scripts/setup.sh --instance-name production --port 3367
+```
 
-### Data Security
-- Regular backups are essential
-- Monitor disk space usage
-- Keep MariaDB updated
-- Monitor logs for suspicious activity
+### Systemd Service Issues
+```bash
+# Check service status
+sudo systemctl status docker-production
+
+# View logs
+sudo journalctl -u docker-production -f
+
+# Restart service
+sudo systemctl restart docker-production
+```
 
 ## 📚 Next Steps
 
 After successful setup:
+1. **Configure passwords** in `.env`
+2. **Start the instance**: `docker compose up -d`
+3. **Test the database**: Use migration scripts
+4. **Set up backups**: Configure retention policy
+5. **Monitor logs**: Check for any issues
 
-1. **Read the Documentation:**
-   - [Migration User Guide](MIGRATION_USER_GUIDE.md)
-   - [Technical Documentation](TECHNICAL.md)
-   - [Folder Structure Guide](FOLDER_STRUCTURE.md)
+## 🔗 Related Documentation
 
-2. **Test Basic Operations:**
-   - Create a test database
-   - Export and import databases
-   - Test backup and restore
-
-3. **Configure for Production:**
-   - Set up monitoring
-   - Configure automated backups
-   - Implement security best practices
-
-## 🆘 Getting Help
-
-If you encounter issues:
-
-1. Check the [Troubleshooting section](MIGRATION_USER_GUIDE.md#troubleshooting)
-2. Review the [Technical Documentation](TECHNICAL.md)
-3. Check container logs: `docker compose logs mariadb`
-4. Verify environment variables: `cat .env`
-
----
-
-**Remember:** Always set a proper password in `.env` before first container startup!
+- [Migration User Guide](MIGRATION_USER_GUIDE.md) - Database migration and management
+- [Backup System](BACKUP_SYSTEM.md) - Backup and restore procedures
+- [Technical Documentation](TECHNICAL.md) - Architecture and configuration details
+- [Folder Structure](FOLDER_STRUCTURE.md) - Project organization

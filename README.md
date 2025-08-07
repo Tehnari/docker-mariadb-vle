@@ -1,17 +1,15 @@
-# MariaDB VLE (Virtual Learning Environment) Docker Compose Service
+# MariaDB VLE (Virtual Learning Environment)
 
-> **Copyright (c) 2025** - See [AUTHORS](AUTHORS) for contributors  
-> Licensed under MIT License - see [LICENSE](LICENSE) for details
+A comprehensive MariaDB Docker Compose environment with advanced database management, backup, and migration capabilities.
 
-A complete MariaDB setup with automated daily backups using `mariadb-backup`, compression, and systemd service management.
-Crossplatform cases can also be used, BUT carefully (e.g. with the use of the scp command).
-
-## Features
+## ✨ Features
 
 - **MariaDB 11.2**: Latest stable version with full Unicode support
 - **⚡ Performance Tuning**: Automatic system analysis and MariaDB optimization
 - **🔤 Character Set Configuration**: Environment-based UTF8MB4 character set support
 - **🌐 Network Security**: Automatic subnet assignment with named networks
+- **🔄 Template-Based Setup**: Clean, maintainable configuration using templates
+- **🔄 Multi-Instance Support**: Run multiple instances with unique names and ports
 - **mariadb-backup**: Native MariaDB backup tool (faster and more reliable than mysqldump)
 - **Compressed Backups**: All backups are compressed with gzip to save storage space
 - **Checksum Verification**: SHA256 checksums for backup integrity
@@ -22,61 +20,110 @@ Crossplatform cases can also be used, BUT carefully (e.g. with the use of the sc
 - **Health Monitoring**: Built-in health checks
 - **Local Storage**: All data stored locally in subfolders
 
-## Quick Start
+## 🚀 Quick Start
 
-### 1. Initial Setup
+### 1. Clone and Setup
 ```bash
+# Clone the repository
+git clone <repository-url>
 cd docker-mariadb-vle
+
+# Basic setup with defaults
+./scripts/setup.sh
+
+# Or customize the instance
+./scripts/setup.sh --instance-name production --port 3367
 ```
 
-**📖 For detailed setup instructions, see [Setup Guide](docs/SETUP_GUIDE.md)**
-
-### 2. Configure Environment
-Edit the `.env` file with your database credentials:
+### 2. Configure Passwords (CRITICAL)
 ```bash
+# Edit the .env file
 nano .env
+
+# Set proper passwords:
+MYSQL_ROOT_PASSWORD=your_secure_root_password
+MYSQL_PASSWORD=your_secure_user_password
 ```
 
-**⚠️ IMPORTANT: First-Time Setup**
-Before starting the container for the first time, ensure you have set a proper root password in the `.env` file:
-- Replace `MYSQL_ROOT_PASSWORD=your_secure_root_password_here` with a real password
-- Example: `MYSQL_ROOT_PASSWORD=my_secure_password_2024`
-- The container will be initialized with this password and cannot be changed without data loss
-
-### 3. Optimize Performance (Recommended)
+### 3. Start the Instance
 ```bash
-# Analyze your system and get recommendations
-./scripts/performance-tuner.sh --analyze
-
-# Generate optimized configuration for your system
-./scripts/performance-tuner.sh --generate
-
-# Apply optimized settings
-./scripts/performance-tuner.sh --apply
-```
-
-### 4. Start the Service
-```bash
-# Using Docker Compose directly
+# Start the container
 docker compose up -d
 
-# Or install as systemd service
-sudo ./install.sh
-sudo systemctl start docker-mariadb-vle
+# Check status
+docker compose ps
 ```
 
-**📝 Note:** If you encounter authentication errors after the first startup, you may need to:
-1. Stop the container: `docker compose down`
-2. Remove the data directory: `sudo rm -rf data/`
-3. Update the password in `.env` file
-4. Restart: `docker compose up -d`
-
-### 4. Setup Daily Backups (Optional)
+### 4. Test the Setup
 ```bash
-./scripts/setup-cron.sh
+# Test database connection
+docker compose exec mariadb mariadb -u root -p -e "SHOW DATABASES;"
+
+# Test migration tools
+./scripts/database-migrate.sh
 ```
 
-## Database Management
+## 📋 Setup Options
+
+### Basic Setup
+```bash
+# Default configuration
+./scripts/setup.sh
+
+# Custom instance
+./scripts/setup.sh --instance-name production --port 3367
+```
+
+### Advanced Setup
+```bash
+# With systemd service
+./scripts/setup.sh --instance-name staging --port 3368 --install-systemd
+
+# With daily backups
+./scripts/setup.sh --instance-name dev --port 3369 --setup-cron
+
+# Complete setup
+./scripts/setup.sh --instance-name prod --port 3370 --install-systemd --setup-cron
+```
+
+### Reset and Reconfigure
+```bash
+# Reset to template level
+./scripts/setup.sh --reset
+
+# Set up fresh instance
+./scripts/setup.sh --instance-name production --port 3367
+```
+
+## 📁 Multi-Instance Setup
+
+### Method 1: Copy and Configure
+```bash
+# Copy project folders
+cp -r docker-mariadb-vle docker-mariadb-vle-production
+cp -r docker-mariadb-vle docker-mariadb-vle-staging
+
+# Configure each instance
+cd docker-mariadb-vle-production
+./scripts/setup.sh --instance-name production --port 3367
+
+cd ../docker-mariadb-vle-staging
+./scripts/setup.sh --instance-name staging --port 3368
+```
+
+### Method 2: Reset and Reconfigure
+```bash
+# In the same folder
+./scripts/setup.sh --reset
+./scripts/setup.sh --instance-name production --port 3367
+
+# For another instance, copy first
+cp -r docker-mariadb-vle docker-mariadb-vle-staging
+cd docker-mariadb-vle-staging
+./scripts/setup.sh --instance-name staging --port 3368
+```
+
+## 🗄️ Database Management
 
 ### Interactive Database Migration
 ```bash
@@ -86,17 +133,12 @@ sudo systemctl start docker-mariadb-vle
 - Import SQL dump files
 - Copy database files directly from host
 - Import from compressed backups
-- **NEW**: Import from migration exports (cross-server)
+- Import from migration exports (cross-server)
 - List available databases on host and container
-- **NEW**: List migration exports
+- List migration exports
 - Interactive menu-driven interface
-- **Fixed Issues**: Resolved pv command errors and mysqldump connection issues
-- **Enhanced Error Handling**: Better validation and error messages
-- **Progress Tracking**: Improved progress bars with proper size calculation and PV installation check
-- **Real-time Updates**: Database list refreshes automatically after imports
-- **PV Installation Check**: Automatic detection and installation guidance for progress bars
-- **NEW**: Database permission management and automatic permission application
-- **NEW**: Source database availability check with graceful degradation
+- Database permission management
+- Source database availability check
 
 ### Enhanced Database Export
 ```bash
@@ -104,282 +146,166 @@ sudo systemctl start docker-mariadb-vle
 ```
 **Features:**
 - Export single or all databases
-- **NEW**: Create migration exports with metadata
-- **NEW**: Progress bars for export operations
-- **NEW**: Compression support with checksums
-- **NEW**: Cross-server migration capability
-- List available databases and migration exports
+- Create migration exports with metadata
+- Progress bars for export operations
+- Compression support with checksums
+- Cross-server migration capability
 
-### 📚 Migration System Documentation
-For comprehensive guidance on using the migration system, including cross-platform scenarios:
-- **[Migration User Guide](docs/MIGRATION_USER_GUIDE.md)** - Complete user guide with scenarios and workflows
-- **[Migration System Documentation](docs/MIGRATION_SYSTEM.md)** - Technical details and troubleshooting
+## 💾 Backup System
 
-### 🔄 Backup System Documentation
-For comprehensive guidance on the automatic backup system:
-- **[Backup System Documentation](docs/BACKUP_SYSTEM.md)** - Complete backup system guide with troubleshooting
-
-### 📁 Folder Structure Guide
-For understanding the project folder organization and usage:
-- **[Folder Structure Guide](docs/FOLDER_STRUCTURE.md)** - Complete guide to all project folders and their purposes
-
-### 🔤 Character Set Configuration
-For comprehensive character set configuration and Unicode support:
-- **[Character Set Guide](docs/CHARACTER_SET_GUIDE.md)** - Complete guide to MariaDB character set configuration
-
-### Database Export
+### Automated Backups
 ```bash
-./scripts/database-export.sh
-```
-**Features:**
-- Export single or all databases
-- Optional compression
-- Custom export directory
-- Timestamped filenames
+# Setup daily backups
+./scripts/setup.sh --setup-cron
 
-## Backup Management
-
-### Manual Backup
-```bash
+# Manual backup
 ./scripts/backup-create.sh
-```
 
-### List Available Backups
-```bash
+# List backups
 ./scripts/backup-list.sh
+
+# Restore from backup
+./scripts/backup-restore.sh
 ```
 
-### Restore from Backup
-```bash
-./scripts/backup-restore.sh mariadb_backup_20241201_143000.tar.gz
-```
-
-### Cleanup Old Backups
-```bash
-./scripts/backup-cleanup.sh
-```
-
-## Systemd Service Management
-
-### Install as System Service
-```bash
-sudo ./install.sh
-```
-
-### Service Commands
-```bash
-# Start service
-sudo systemctl start docker-mariadb-vle
-
-# Stop service
-sudo systemctl stop docker-mariadb-vle
-
-# Restart service
-sudo systemctl restart docker-mariadb-vle
-
-# Check status
-sudo systemctl status docker-mariadb-vle
-
-# Enable auto-start
-sudo systemctl enable docker-mariadb-vle
-
-# Disable auto-start
-sudo systemctl disable docker-mariadb-vle
-
-# View logs
-sudo journalctl -u docker-mariadb-vle -f
-```
-
-## Directory Structure
-
-```
-docker-mariadb-vle/
-├── docker-compose.yml          # Main compose file
-├── .env.example               # Environment template
-├── .env                       # Environment variables (create from example)
-├── setup.sh                   # Initial setup script
-├── install.sh                 # Systemd installation script
-├── docker-mariadb-vle.service # Systemd service file
-├── data/                      # MariaDB data directory
-├── backups/                   # Compressed backup storage
-├── exports/                   # Database export directory
-├── logs/                      # MariaDB and backup logs
-├── init/                      # Initialization scripts
-└── scripts/                   # All management scripts
-    ├── backup-create.sh       # Create manual backup
-    ├── backup-restore.sh      # Restore from backup
-    ├── backup-list.sh         # List available backups
-    ├── backup-cleanup.sh      # Cleanup old backups
-    ├── backup-daily.sh        # Daily automated backup
-    ├── setup-cron.sh          # Setup cron for daily backups
-    ├── database-migrate.sh    # Interactive database migration
-    └── database-export.sh     # Export databases from container
-```
-
-## Configuration
-
-### Environment Variables (.env)
-- `MYSQL_ROOT_PASSWORD`: Root password for MariaDB
-- `MYSQL_DATABASE`: Default database name
-- `MYSQL_USER`: Database user
-- `MYSQL_PASSWORD`: Database user password
-- `MYSQL_PORT`: Port for external access (default: 3306)
-- `BACKUP_RETENTION_DAYS`: Days to keep backups (default: 30)
-
-### Backup Configuration
-- **Tool**: Uses `mariadb-backup` (native MariaDB backup tool)
+### Backup Features
+- **Native mariadb-backup**: Faster and more reliable than mysqldump
 - **Compression**: All backups compressed with gzip
-- **Daily Backups**: Automatically created at 2:00 AM via cron
-- **Retention**: Configurable via `BACKUP_RETENTION_DAYS`
-- **Location**: `./backups/` directory
-- **Format**: `mariadb_backup_YYYYMMDD_HHMMSS.tar.gz`
-- **Integrity**: SHA256 checksums for verification
+- **Checksums**: SHA256 verification for integrity
+- **Retention**: Configurable retention policy
+- **Automation**: Daily backups at 2:00 AM
 
-## Database Migration Features
+## ⚡ Performance Optimization
 
-### Import Options
-1. **SQL Dump Import**: Import from .sql files
-2. **Direct File Copy**: Copy database files directly from host
-3. **Compressed Backup Import**: Import from compressed backups
-4. **Database Listing**: View available databases on host and container
-5. **Database Drop**: Safe database deletion with double confirmation
-
-### Export Options
-1. **Single Database Export**: Export specific database
-2. **All Databases Export**: Export all user databases
-3. **Compression Support**: Optional gzip compression
-4. **Custom Directories**: Specify export location
-
-## Why mariadb-backup?
-
-- **Faster**: Native backup tool, much faster than mysqldump
-- **More Reliable**: Handles large databases better
-- **Incremental Support**: Can perform incremental backups
-- **Consistent**: Provides consistent backups even during writes
-- **Compression**: Built-in compression support
-
-## Security Features
-
-- **Network Isolation**: Containers on private Docker network
-- **Local Binding**: Port bound to 127.0.0.1 only
-- **Secure Passwords**: Environment-based configuration
-- **Health Checks**: Automatic service monitoring
-- **Checksum Verification**: Backup integrity checking
-
-## Troubleshooting
-
-### Check Service Status
+### Automatic Tuning
 ```bash
-docker compose ps
-docker compose logs mariadb
-```
-
-### Check Systemd Service
-```bash
-sudo systemctl status docker-mariadb-vle
-sudo journalctl -u docker-mariadb-vle -f
-```
-
-### Check Backup Logs
-```bash
-tail -f logs/backup.log
-```
-
-### Reset Database
-```bash
-docker compose down
-sudo rm -rf data/
-docker compose up -d
-```
-
-### Manual Database Access
-```bash
-docker compose exec mariadb mysql -u root -p
-```
-
-### Verify Backup Integrity
-```bash
-# Check checksum
-sha256sum -c backups/mariadb_backup_YYYYMMDD_HHMMSS.sha256
-
-# Test restore (dry run)
-./scripts/backup-restore.sh mariadb_backup_YYYYMMDD_HHMMSS.tar.gz
-```
-
-## Performance Tuning
-
-The MariaDB configuration uses environment-based settings optimized for your system:
-
-### Automatic Optimization
-```bash
-# Analyze your system and get recommendations
+# Analyze system and optimize
 ./scripts/performance-tuner.sh --analyze
-
-# Generate optimized configuration
-./scripts/performance-tuner.sh --generate
-
-# Apply optimized settings
 ./scripts/performance-tuner.sh --apply
 ```
 
-### System-Specific Optimizations
-- **Small Systems** (<4GB RAM): 60% buffer pool, development/testing
-- **Medium Systems** (4-8GB RAM): 70% buffer pool, moderate production  
-- **Large Systems** (>8GB RAM): 16GB buffer pool, high-performance production for 25GB+ databases
-- **Max Connections**: CPU cores × 40 (max 800 for large databases)
+### Performance Features
+- **System Analysis**: Automatic RAM and CPU detection
+- **Conservative Values**: Safe defaults for production use
+- **Environment-Based**: All settings via environment variables
+- **Real-time Monitoring**: Built-in health checks
 
-### Manual Configuration
-Adjust performance settings in `.env` file:
-- `MARIADB_INNODB_BUFFER_POOL_SIZE`: Buffer pool size
-- `MARIADB_MAX_CONNECTIONS`: Maximum concurrent connections
-- `MARIADB_INNODB_LOG_FILE_SIZE`: Transaction log file size
-- `MARIADB_QUERY_CACHE_SIZE`: Query cache size
+## 🔧 Systemd Service
 
-## Storage Requirements
-
-With compression enabled:
-- **Typical backup size**: 50-80% smaller than uncompressed
-- **Daily backup**: ~100-500MB (depending on data size)
-- **Monthly storage**: ~3-15GB (30 days retention)
-
-## Cron Job Management
-
-### View Current Cron Jobs
+### Install as Service
 ```bash
-crontab -l
+# Install as systemd service
+./scripts/setup.sh --install-systemd
+
+# Service management
+sudo systemctl start docker-production
+sudo systemctl stop docker-production
+sudo systemctl restart docker-production
+sudo systemctl status docker-production
 ```
 
-### Remove Backup Cron Job
+## 📚 Documentation
+
+- **[Setup Guide](docs/SETUP_GUIDE.md)** - Complete setup instructions
+- **[Migration User Guide](docs/MIGRATION_USER_GUIDE.md)** - Database migration workflows
+- **[Backup System](docs/BACKUP_SYSTEM.md)** - Backup and restore procedures
+- **[Technical Documentation](docs/TECHNICAL.md)** - Architecture and configuration
+- **[Folder Structure](docs/FOLDER_STRUCTURE.md)** - Project organization
+- **[Character Set Guide](docs/CHARACTER_SET_GUIDE.md)** - Unicode configuration
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+**1. Authentication Errors**
 ```bash
-crontab -e
-# Remove the line containing "backup-daily.sh"
+# Check password configuration
+grep MYSQL_ROOT_PASSWORD .env
+
+# Reset and reconfigure
+./scripts/setup.sh --reset
+./scripts/setup.sh --instance-name production --port 3367
 ```
 
-### Manual Cron Job Setup
+**2. Port Conflicts**
 ```bash
-# Add to crontab manually
-crontab -e
-
-# Add this line for daily backup at 2:00 AM:
-0 2 * * * cd /path/to/docker-mariadb-vle && ./scripts/backup-daily.sh >> ./logs/backup.log 2>&1
+# Choose different port
+./scripts/setup.sh --instance-name production --port 3368
 ```
 
-## Migration Examples
-
-### Import from SQL Dump
+**3. Permission Issues**
 ```bash
-./scripts/database-migrate.sh
-# Select option 1 and provide path to .sql file
+# Fix script permissions
+chmod +x scripts/*.sh
 ```
 
-### Copy from Host Database
+### Verification
 ```bash
-./scripts/database-migrate.sh
-# Select option 2 and choose database from list
+# Check configuration
+docker compose config
+
+# Check status
+docker compose ps
+
+# Test connection
+docker compose exec mariadb mariadb -u root -p -e "SHOW DATABASES;"
 ```
 
-### Export Database
-```bash
-./scripts/database-export.sh
-# Select database and export options
+## 🔒 Security
+
+### Critical Setup Steps
+1. **Set proper passwords** in `.env` before first startup
+2. **Use unique instance names** for multi-instance setups
+3. **Configure firewall rules** if needed
+4. **Monitor logs** for suspicious activity
+
+### Instance Isolation
+- Each instance has unique container name and network
+- Independent data directories
+- Separate port assignments
+- Isolated configurations
+
+## 📊 Project Structure
+
 ```
+docker-mariadb-vle/
+├── docker-compose.template.yml     # Template for docker-compose
+├── docker-mariadb-vle.service.template  # Template for systemd service
+├── .env.example                   # Environment template
+├── .env                           # Environment variables (generated)
+├── scripts/                       # All management scripts
+│   ├── setup.sh                   # Main setup script
+│   ├── database-migrate.sh        # Database migration tool
+│   ├── database-export.sh         # Database export tool
+│   ├── backup-*.sh               # Backup management scripts
+│   └── performance-tuner.sh       # Performance optimization
+├── data/                          # MariaDB data directory
+├── backups/                       # Compressed backup storage
+├── migrations/                    # Database migration files
+├── logs/                          # MariaDB and backup logs
+└── docs/                          # Documentation
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## ⚠️ Important Notes
+
+- **Always set proper passwords** in `.env` before first startup
+- **Test in development** before deploying to production
+- **Regular backups** are essential for data safety
+- **Monitor disk space** usage for large databases
+- **Keep MariaDB updated** for security patches
+
+---
+
+**MariaDB VLE** - A comprehensive, production-ready MariaDB environment with advanced management capabilities.
