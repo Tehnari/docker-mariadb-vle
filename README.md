@@ -1,81 +1,29 @@
 # MariaDB VLE (Virtual Learning Environment)
 
-A comprehensive MariaDB Docker Compose environment with advanced database management, backup, and migration capabilities.
+A robust, production-ready MariaDB 11.2 Docker Compose setup with comprehensive management tools, performance optimization, and multi-instance support.
 
-## ✨ Features
+## 🚀 **Quick Start**
 
-- **MariaDB 11.2**: Latest stable version with full Unicode support
-- **⚡ Performance Tuning**: Automatic system analysis and MariaDB optimization
-- **🔤 Character Set Configuration**: Environment-based UTF8MB4 character set support
-- **🌐 Network Security**: Automatic subnet assignment with named networks
-- **🔄 Template-Based Setup**: Clean, maintainable configuration using templates
-- **🔄 Multi-Instance Support**: Run multiple instances with unique names and ports
-- **mariadb-backup**: Native MariaDB backup tool (faster and more reliable than mysqldump)
-- **Compressed Backups**: All backups are compressed with gzip to save storage space
-- **Checksum Verification**: SHA256 checksums for backup integrity
-- **Automated Daily Backups**: Cron-based daily backups at 2:00 AM
-- **Manual Backup/Restore**: Scripts for manual operations
-- **Database Migration Tools**: Interactive tools for importing/exporting databases
-- **Systemd Integration**: Full systemd service support
-- **Health Monitoring**: Built-in health checks
-- **Local Storage**: All data stored locally in subfolders
-
-## 🚀 Quick Start
-
-### 1. Clone and Setup
+### **Single Command Setup**
 ```bash
-# Clone the repository
+# Clone and setup
 git clone <repository-url>
 cd docker-mariadb-vle
 
-# Basic setup with defaults
-./scripts/setup.sh
-
-# Or customize the instance
-./scripts/setup.sh --instance-name production --port 3367
-```
-
-### 2. Configure Passwords (CRITICAL)
-```bash
-# Edit the .env file
-nano .env
-
-# Set proper passwords:
-MYSQL_ROOT_PASSWORD=your_secure_root_password
-MYSQL_PASSWORD=your_secure_user_password
-```
-
-### 3. Start the Instance
-```bash
-# Start the container
+# Complete setup with performance optimization
+./scripts/setup.sh --instance-name production --port 3367 --install-systemd --setup-cron
+./scripts/setup.sh --optimize-performance
 docker compose up -d
-
-# Check status
-docker compose ps
 ```
 
-### 4. Test the Setup
+### **Basic Setup**
 ```bash
-# Test database connection
-docker compose exec mariadb mariadb -u root -p -e "SHOW DATABASES;"
-
-# Test migration tools
-./scripts/database-migrate.sh
-```
-
-## 📋 Setup Options
-
-### Basic Setup
-```bash
-# Default configuration
+# Basic setup with defaults
 ./scripts/setup.sh
 
 # Custom instance
 ./scripts/setup.sh --instance-name production --port 3367
-```
 
-### Advanced Setup
-```bash
 # With systemd service
 ./scripts/setup.sh --instance-name staging --port 3368 --install-systemd
 
@@ -86,226 +34,234 @@ docker compose exec mariadb mariadb -u root -p -e "SHOW DATABASES;"
 ./scripts/setup.sh --instance-name prod --port 3370 --install-systemd --setup-cron
 ```
 
-### Reset and Reconfigure
+## 🔧 **Setup Script Features**
+
+### **Single Comprehensive Script**
+All setup operations are now integrated into `scripts/setup.sh`:
+
 ```bash
-# Reset to template level
+./scripts/setup.sh --help                    # Show all options
+./scripts/setup.sh --reset                   # Reset to template level
+./scripts/setup.sh --instance-name prod --port 3367  # Custom setup
+./scripts/setup.sh --install-systemd         # Install as systemd service
+./scripts/setup.sh --setup-cron              # Setup daily backups
+./scripts/setup.sh --update-passwords        # Generate new secure passwords
+./scripts/setup.sh --optimize-performance    # Analyze and optimize performance
+```
+
+### **Password Security**
+- **Automatic Generation**: Secure 12-character passwords (uppercase, lowercase, numbers)
+- **No Special Characters**: Avoids shell/Docker conflicts
+- **MariaDB Compatible**: Reliable authentication
+- **Update Option**: `--update-passwords` generates new passwords
+
+### **Performance Optimization**
+- **System Analysis**: Automatic detection of RAM, CPU, disk space
+- **Conservative Settings**: Balanced for large databases (25GB+)
+- **Integrated Workflow**: Part of setup script
+- **Automatic Application**: Updates .env directly
+
+## 📋 **Complete Workflow Examples**
+
+### **Production Setup**
+```bash
+# 1. Generate new secure passwords
+./scripts/setup.sh --update-passwords
+
+# 2. Setup instance with all features
+./scripts/setup.sh --instance-name production --port 3367 --install-systemd --setup-cron
+
+# 3. Optimize performance
+./scripts/setup.sh --optimize-performance
+
+# 4. Start container
+docker compose up -d
+```
+
+### **Development Setup**
+```bash
+# Quick development setup
+./scripts/setup.sh --instance-name dev --port 3368
+./scripts/setup.sh --optimize-performance
+docker compose up -d
+```
+
+### **Reset to Template**
+```bash
+# Reset everything to template state
 ./scripts/setup.sh --reset
 
-# Set up fresh instance
-./scripts/setup.sh --instance-name production --port 3367
+# Then setup again
+./scripts/setup.sh --instance-name fresh --port 3369
 ```
 
-## 📁 Multi-Instance Setup
+## 🎯 **Key Features**
 
-### Method 1: Copy and Configure
+### **Single Setup Script**
+- **All-in-one**: Setup, passwords, performance, systemd, cron
+- **Template-based**: Dynamic generation from templates
+- **Multi-instance**: Support for multiple isolated instances
+- **Reset functionality**: Return to template state
+- **Password generation**: Secure MariaDB-compatible passwords
+- **Performance optimization**: Integrated system analysis and optimization
+
+### **Password Security**
+- **12-character passwords**: Secure but simple format
+- **No special characters**: Avoids shell/Docker conflicts
+- **MariaDB compatible**: Reliable authentication
+- **Automatic generation**: Integrated into setup workflow
+
+### **Performance Optimization**
+- **System analysis**: Automatic resource detection
+- **Conservative settings**: Balanced for large databases
+- **Integrated workflow**: Part of setup script
+- **Automatic application**: Updates .env directly
+
+### **Multi-Instance Support**
+- **Unique names**: Each instance has unique container name
+- **Unique ports**: Configurable ports for each instance
+- **Unique networks**: Isolated networks per instance
+- **Template-based**: Dynamic generation from templates
+
+### **Database Management**
+- **Migration tools**: Comprehensive import/export
+- **Permission management**: Automatic permission handling
+- **Backup system**: Automated daily backups
+- **Health monitoring**: Container health checks
+
+## 🔧 **Configuration**
+
+### **Environment Variables**
+Key configuration variables in `.env`:
+
 ```bash
-# Copy project folders
-cp -r docker-mariadb-vle docker-mariadb-vle-production
-cp -r docker-mariadb-vle docker-mariadb-vle-staging
+# Instance Configuration
+INSTANCE_NAME=mariadb-vle
+INSTANCE_PORT=3366
 
-# Configure each instance
-cd docker-mariadb-vle-production
-./scripts/setup.sh --instance-name production --port 3367
+# MariaDB Configuration
+MYSQL_ROOT_PASSWORD=SmBnpe7YU4tt
+MYSQL_DATABASE=vledb
+MYSQL_USER=vledb_user
+MYSQL_PASSWORD=My4LC791txci
 
-cd ../docker-mariadb-vle-staging
-./scripts/setup.sh --instance-name staging --port 3368
+# Character Set Configuration
+MARIADB_CHARACTER_SET_SERVER=utf8mb4
+MARIADB_COLLATION_SERVER=utf8mb4_unicode_ci
+
+# Performance Configuration
+MARIADB_INNODB_BUFFER_POOL_SIZE=16384M
+MARIADB_INNODB_LOG_FILE_SIZE=2048M
+MARIADB_MAX_CONNECTIONS=480
 ```
 
-### Method 2: Reset and Reconfigure
-```bash
-# In the same folder
-./scripts/setup.sh --reset
-./scripts/setup.sh --instance-name production --port 3367
+### **Performance Settings**
+Automatically calculated based on system resources:
+- **Buffer Pool**: Up to 16GB for large systems
+- **Log File Size**: Up to 2GB for large databases
+- **Max Connections**: CPU cores × 40 (max 800)
+- **Conservative Values**: Safe for production use
 
-# For another instance, copy first
-cp -r docker-mariadb-vle docker-mariadb-vle-staging
-cd docker-mariadb-vle-staging
-./scripts/setup.sh --instance-name staging --port 3368
-```
-
-## 🗄️ Database Management
-
-### Interactive Database Migration
-```bash
-./scripts/database-migrate.sh
-```
-**Features:**
-- Import SQL dump files
-- Copy database files directly from host
-- Import from compressed backups
-- Import from migration exports (cross-server)
-- List available databases on host and container
-- List migration exports
-- Interactive menu-driven interface
-- Database permission management
-- Source database availability check
-
-### Enhanced Database Export
-```bash
-./scripts/database-export.sh
-```
-**Features:**
-- Export single or all databases
-- Create migration exports with metadata
-- Progress bars for export operations
-- Compression support with checksums
-- Cross-server migration capability
-
-## 💾 Backup System
-
-### Automated Backups
-```bash
-# Setup daily backups
-./scripts/setup.sh --setup-cron
-
-# Manual backup
-./scripts/backup-create.sh
-
-# List backups
-./scripts/backup-list.sh
-
-# Restore from backup
-./scripts/backup-restore.sh
-```
-
-### Backup Features
-- **Native mariadb-backup**: Faster and more reliable than mysqldump
-- **Compression**: All backups compressed with gzip
-- **Checksums**: SHA256 verification for integrity
-- **Retention**: Configurable retention policy
-- **Automation**: Daily backups at 2:00 AM
-
-## ⚡ Performance Optimization
-
-### Automatic Tuning
-```bash
-# Analyze system and optimize
-./scripts/performance-tuner.sh --analyze
-./scripts/performance-tuner.sh --apply
-```
-
-### Performance Features
-- **System Analysis**: Automatic RAM and CPU detection
-- **Conservative Values**: Safe defaults for production use
-- **Environment-Based**: All settings via environment variables
-- **Real-time Monitoring**: Built-in health checks
-
-## 🔧 Systemd Service
-
-### Install as Service
-```bash
-# Install as systemd service
-./scripts/setup.sh --install-systemd
-
-# Service management
-sudo systemctl start docker-production
-sudo systemctl stop docker-production
-sudo systemctl restart docker-production
-sudo systemctl status docker-production
-```
-
-## 📚 Documentation
-
-- **[Setup Guide](docs/SETUP_GUIDE.md)** - Complete setup instructions
-- **[Migration User Guide](docs/MIGRATION_USER_GUIDE.md)** - Database migration workflows
-- **[Backup System](docs/BACKUP_SYSTEM.md)** - Backup and restore procedures
-- **[Technical Documentation](docs/TECHNICAL.md)** - Architecture and configuration
-- **[Folder Structure](docs/FOLDER_STRUCTURE.md)** - Project organization
-- **[Character Set Guide](docs/CHARACTER_SET_GUIDE.md)** - Unicode configuration
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-**1. Authentication Errors**
-```bash
-# Check password configuration
-grep MYSQL_ROOT_PASSWORD .env
-
-# Reset and reconfigure
-./scripts/setup.sh --reset
-./scripts/setup.sh --instance-name production --port 3367
-```
-
-**2. Port Conflicts**
-```bash
-# Choose different port
-./scripts/setup.sh --instance-name production --port 3368
-```
-
-**3. Permission Issues**
-```bash
-# Fix script permissions
-chmod +x scripts/*.sh
-```
-
-### Verification
-```bash
-# Check configuration
-docker compose config
-
-# Check status
-docker compose ps
-
-# Test connection
-docker compose exec mariadb mariadb -u root -p -e "SHOW DATABASES;"
-```
-
-## 🔒 Security
-
-### Critical Setup Steps
-1. **Set proper passwords** in `.env` before first startup
-2. **Use unique instance names** for multi-instance setups
-3. **Configure firewall rules** if needed
-4. **Monitor logs** for suspicious activity
-
-### Instance Isolation
-- Each instance has unique container name and network
-- Independent data directories
-- Separate port assignments
-- Isolated configurations
-
-## 📊 Project Structure
+## 📁 **Project Structure**
 
 ```
 docker-mariadb-vle/
+├── scripts/
+│   ├── setup.sh                    # Single comprehensive setup script
+│   ├── database-migrate.sh         # Migration tools
+│   ├── database-export.sh          # Export tools
+│   ├── backup-*.sh                # Backup scripts
+│   └── performance-tuner.sh        # Performance optimization
 ├── docker-compose.template.yml     # Template for docker-compose
-├── docker-mariadb-vle.service.template  # Template for systemd service
+├── docker-mariadb-vle.service.template  # Template for systemd
 ├── .env.example                   # Environment template
-├── .env                           # Environment variables (generated)
-├── scripts/                       # All management scripts
-│   ├── setup.sh                   # Main setup script
-│   ├── database-migrate.sh        # Database migration tool
-│   ├── database-export.sh         # Database export tool
-│   ├── backup-*.sh               # Backup management scripts
-│   └── performance-tuner.sh       # Performance optimization
-├── data/                          # MariaDB data directory
-├── backups/                       # Compressed backup storage
-├── migrations/                    # Database migration files
-├── logs/                          # MariaDB and backup logs
-└── docs/                          # Documentation
+└── docs/                          # Comprehensive documentation
 ```
 
-## 🤝 Contributing
+## 🛠 **Management Commands**
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+### **Container Management**
+```bash
+# Start/Stop/Status
+docker compose up -d
+docker compose down
+docker compose ps
 
-## 📄 License
+# Development scripts
+./scripts/dev-start.sh
+./scripts/dev-stop.sh
+./scripts/dev-status.sh
+```
+
+### **Database Management**
+```bash
+# Migration tools
+./scripts/database-migrate.sh
+./scripts/database-export.sh
+
+# Backup management
+./scripts/backup-create.sh
+./scripts/backup-restore.sh
+./scripts/backup-list.sh
+```
+
+### **Performance Management**
+```bash
+# Performance optimization
+./scripts/setup.sh --optimize-performance
+
+# Monitor performance
+docker stats ${INSTANCE_NAME:-mariadb-vle}
+```
+
+## 📚 **Documentation**
+
+- **[Setup Guide](docs/SETUP_GUIDE.md)**: Detailed setup instructions
+- **[Migration Guide](docs/MIGRATION_USER_GUIDE.md)**: Database migration workflows
+- **[Character Set Guide](docs/CHARACTER_SET_GUIDE.md)**: UTF8MB4 configuration
+- **[Task Tracker](docs/TASK_TRACKER.md)**: Complete feature tracking
+
+## ⚠️ **Important Notes**
+
+### **Password Security**
+- **Change Default Passwords**: Always update passwords in production
+- **Secure Storage**: Store passwords securely, not in version control
+- **Regular Updates**: Use `--update-passwords` to generate new passwords
+
+### **Performance Considerations**
+- **Large Databases**: Performance settings optimized for 25GB+ databases
+- **System Resources**: Conservative settings for stable operation
+- **Monitoring**: Use `docker stats` to monitor resource usage
+
+### **Multi-Instance Usage**
+- **Unique Names**: Each instance needs unique name and port
+- **Resource Isolation**: Each instance has separate data and network
+- **Template Reset**: Use `--reset` to return to template state
+
+## 🚀 **Production Deployment**
+
+### **Recommended Workflow**
+1. **Generate Passwords**: `./scripts/setup.sh --update-passwords`
+2. **Setup Instance**: `./scripts/setup.sh --instance-name prod --port 3367 --install-systemd --setup-cron`
+3. **Optimize Performance**: `./scripts/setup.sh --optimize-performance`
+4. **Start Container**: `docker compose up -d`
+5. **Verify Setup**: Test connections and performance
+
+### **Security Checklist**
+- [ ] Change default passwords
+- [ ] Configure firewall rules
+- [ ] Set up monitoring
+- [ ] Configure backups
+- [ ] Test disaster recovery
+
+## 📄 **License**
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## ⚠️ Important Notes
+## 🤝 **Contributing**
 
-- **Always set proper passwords** in `.env` before first startup
-- **Test in development** before deploying to production
-- **Regular backups** are essential for data safety
-- **Monitor disk space** usage for large databases
-- **Keep MariaDB updated** for security patches
+Contributions are welcome! Please read our contributing guidelines and submit pull requests.
 
 ---
 
-**MariaDB VLE** - A comprehensive, production-ready MariaDB environment with advanced management capabilities.
+**Status**: ✅ **PRODUCTION READY** - All features implemented and tested

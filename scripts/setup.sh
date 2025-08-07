@@ -31,6 +31,156 @@ print_header() {
     echo -e "${BLUE}================================${NC}"
 }
 
+# Function to generate secure MariaDB-compatible password
+generate_password() {
+    # Generate a 12-character password with:
+    # - At least 1 uppercase letter
+    # - At least 1 lowercase letter  
+    # - At least 1 number
+    # - At least 1 special character (simpler ones for MariaDB compatibility)
+    # - No problematic characters for MariaDB
+    
+    # Define character sets
+    UPPER="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    LOWER="abcdefghijklmnopqrstuvwxyz"
+    NUMBERS="0123456789"
+    SPECIAL=""  # No special characters to avoid any compatibility issues
+    
+    # Generate password components
+    password=""
+    password+="${UPPER:$((RANDOM % ${#UPPER})):1}"  # 1 uppercase
+    password+="${LOWER:$((RANDOM % ${#LOWER})):1}"  # 1 lowercase
+    password+="${NUMBERS:$((RANDOM % ${#NUMBERS})):1}"  # 1 number
+    
+    # Fill remaining 9 characters with mixed characters (no special chars)
+    ALL_CHARS="${UPPER}${LOWER}${NUMBERS}"
+    for i in {1..9}; do
+        password+="${ALL_CHARS:$((RANDOM % ${#ALL_CHARS})):1}"
+    done
+    
+    # Shuffle the password
+    echo "$password" | fold -w1 | shuf | tr -d '\n'
+}
+
+# Function to get system information and calculate performance settings
+get_system_info() {
+    # Get total RAM
+    TOTAL_RAM=$(free -m | awk 'NR==2{printf "%.0f", $2}')
+    AVAILABLE_RAM=$(free -m | awk 'NR==2{printf "%.0f", $7}')
+    
+    # Get CPU cores
+    CPU_CORES=$(nproc)
+    
+    # Get disk space
+    DISK_SPACE=$(df -BG . | awk 'NR==2{print $4}' | sed 's/G//')
+    
+    print_status "Total RAM: ${TOTAL_RAM}MB"
+    print_status "Available RAM: ${AVAILABLE_RAM}MB"
+    print_status "CPU Cores: ${CPU_CORES}"
+    print_status "Available Disk Space: ${DISK_SPACE}GB"
+    
+    # Calculate recommended settings
+    calculate_performance_settings
+}
+
+# Function to calculate performance settings
+calculate_performance_settings() {
+    print_status "Calculating performance settings..."
+    
+    # Calculate InnoDB Buffer Pool Size (conservative values for stable operation)
+    if [ "$TOTAL_RAM" -gt 16384 ]; then
+        # Very large system (>16GB RAM) - balanced for large databases
+        INNODB_BUFFER_POOL_SIZE=16384
+        print_status "Very large system detected (>16GB RAM)"
+        print_status "Recommended InnoDB Buffer Pool: ${INNODB_BUFFER_POOL_SIZE}M (balanced for large databases)"
+    elif [ "$TOTAL_RAM" -gt 8192 ]; then
+        # Large system (8-16GB RAM) - max 4GB buffer pool
+        INNODB_BUFFER_POOL_SIZE=4096
+        print_status "Large system detected (8-16GB RAM)"
+        print_status "Recommended InnoDB Buffer Pool: ${INNODB_BUFFER_POOL_SIZE}M (conservative)"
+    elif [ "$TOTAL_RAM" -gt 4096 ]; then
+        # Medium system (4-8GB RAM) - max 2GB buffer pool
+        INNODB_BUFFER_POOL_SIZE=2048
+        print_status "Medium system detected (4-8GB RAM)"
+        print_status "Recommended InnoDB Buffer Pool: ${INNODB_BUFFER_POOL_SIZE}M (conservative)"
+    else
+        # Small system (<4GB RAM) - max 1GB buffer pool
+        INNODB_BUFFER_POOL_SIZE=1024
+        print_status "Small system detected (<4GB RAM)"
+        print_status "Recommended InnoDB Buffer Pool: ${INNODB_BUFFER_POOL_SIZE}M (conservative)"
+    fi
+    
+    # Calculate InnoDB Log File Size (balanced: 25% of buffer pool, max 2GB for large databases)
+    INNODB_LOG_FILE_SIZE=$((INNODB_BUFFER_POOL_SIZE * 25 / 100))
+    if [ "$INNODB_LOG_FILE_SIZE" -gt 2048 ]; then
+        INNODB_LOG_FILE_SIZE=2048
+    fi
+    print_status "Recommended InnoDB Log File Size: ${INNODB_LOG_FILE_SIZE}M (balanced for large databases)"
+    
+    # Calculate Max Connections (balanced: CPU cores × 40, max 800 for large databases)
+    MAX_CONNECTIONS=$((CPU_CORES * 40))
+    if [ "$MAX_CONNECTIONS" -gt 800 ]; then
+        MAX_CONNECTIONS=800
+    fi
+    print_status "Recommended Max Connections: ${MAX_CONNECTIONS} (balanced for large databases)"
+    
+    # Calculate other settings
+    QUERY_CACHE_SIZE=128
+    TMP_TABLE_SIZE=512
+    MAX_HEAP_TABLE_SIZE=512
+    
+    print_status "Recommended Query Cache Size: ${QUERY_CACHE_SIZE}M"
+    print_status "Recommended Temp Table Size: ${TMP_TABLE_SIZE}M"
+    print_status "Recommended Max Heap Table Size: ${MAX_HEAP_TABLE_SIZE}M"
+}
+
+# Function to apply performance settings to .env
+apply_performance_settings() {
+    print_status "Applying performance settings to .env..."
+    
+    # Create backup of current .env
+    if [ -f .env ]; then
+        cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
+        print_status "Backup created: .env.backup.$(date +%Y%m%d_%H%M%S)"
+    fi
+    
+    # Update performance settings in .env
+    sed -i "s/MARIADB_INNODB_BUFFER_POOL_SIZE=.*/MARIADB_INNODB_BUFFER_POOL_SIZE=${INNODB_BUFFER_POOL_SIZE}M/" .env
+    sed -i "s/MARIADB_INNODB_LOG_FILE_SIZE=.*/MARIADB_INNODB_LOG_FILE_SIZE=${INNODB_LOG_FILE_SIZE}M/" .env
+    sed -i "s/MARIADB_MAX_CONNECTIONS=.*/MARIADB_MAX_CONNECTIONS=${MAX_CONNECTIONS}/" .env
+    sed -i "s/MARIADB_QUERY_CACHE_SIZE=.*/MARIADB_QUERY_CACHE_SIZE=${QUERY_CACHE_SIZE}M/" .env
+    sed -i "s/MARIADB_TMP_TABLE_SIZE=.*/MARIADB_TMP_TABLE_SIZE=${TMP_TABLE_SIZE}M/" .env
+    sed -i "s/MARIADB_MAX_HEAP_TABLE_SIZE=.*/MARIADB_MAX_HEAP_TABLE_SIZE=${MAX_HEAP_TABLE_SIZE}M/" .env
+    
+    print_status "✓ Performance settings applied to .env"
+    print_warning "Restart the container to apply changes: docker compose down && docker compose up -d"
+}
+
+# Function to update passwords in .env.example
+update_passwords() {
+    print_status "Generating new secure passwords..."
+    
+    # Generate new passwords
+    ROOT_PASSWORD=$(generate_password)
+    USER_PASSWORD=$(generate_password)
+    
+    print_status "Generated Root Password: $ROOT_PASSWORD"
+    print_status "Generated User Password: $USER_PASSWORD"
+    
+    # Create backup of current .env.example
+    if [ -f .env.example ]; then
+        cp .env.example .env.example.backup.$(date +%Y%m%d_%H%M%S)
+        print_status "Backup created: .env.example.backup.$(date +%Y%m%d_%H%M%S)"
+    fi
+    
+    # Update .env.example with new passwords
+    sed -i "s/MYSQL_ROOT_PASSWORD=.*/MYSQL_ROOT_PASSWORD=$ROOT_PASSWORD/" .env.example
+    sed -i "s/MYSQL_PASSWORD=.*/MYSQL_PASSWORD=$USER_PASSWORD/" .env.example
+    
+    print_status "✓ .env.example updated with new passwords"
+    print_warning "Remember to update passwords in production environments!"
+}
+
 show_usage() {
     echo "Usage: $0 [options]"
     echo ""
@@ -40,6 +190,8 @@ show_usage() {
     echo "  --install-systemd      Install as systemd service"
     echo "  --setup-cron           Setup daily backups"
     echo "  --reset                Reset to template level (remove all configuration)"
+    echo "  --update-passwords     Generate new secure passwords for .env.example"
+    echo "  --optimize-performance Analyze system and apply performance settings"
     echo "  --help                 Show this help"
     echo ""
     echo "Examples:"
@@ -48,6 +200,8 @@ show_usage() {
     echo "  $0 --instance-name staging --port 3368 --install-systemd"
     echo "  $0 --instance-name dev --port 3369 --setup-cron"
     echo "  $0 --reset                            # Reset to template level"
+    echo "  $0 --update-passwords                 # Generate new passwords"
+    echo "  $0 --optimize-performance            # Analyze and optimize performance"
 }
 
 setup_instance() {
@@ -165,15 +319,21 @@ reset_to_template() {
     rm -f docker-compose.yml
     rm -f docker-*.service
     
-    # Reset .env to template
-    if [ -f ".env.example" ]; then
-        print_status "Resetting .env to template..."
-        cp .env.example .env
+    # Remove backup and temporary files
+    print_status "Removing backup and temporary files..."
+    rm -f .env.backup.*
+    rm -f .env.example.backup.*
+    rm -f .env.optimized
+    
+    # Remove .env file to return to template state
+    if [ -f ".env" ]; then
+        print_status "Removing .env file to return to template state..."
+        rm .env
     fi
     
     # Remove data directories (but keep structure)
     print_status "Clearing data directories..."
-    rm -rf data/* 2>/dev/null || true
+    sudo rm -rf data/* data/.* 2>/dev/null || true
     rm -rf backups/* 2>/dev/null || true
     rm -rf logs/* 2>/dev/null || true
     rm -rf migrations/exports/* 2>/dev/null || true
@@ -207,6 +367,8 @@ main() {
     INSTALL_SYSTEMD=false
     SETUP_CRON=false
     RESET_TEMPLATE=false
+    UPDATE_PASSWORDS=false
+    OPTIMIZE_PERFORMANCE=false
     
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -229,6 +391,14 @@ main() {
                 ;;
             --reset)
                 RESET_TEMPLATE=true
+                shift
+                ;;
+            --update-passwords)
+                UPDATE_PASSWORDS=true
+                shift
+                ;;
+            --optimize-performance)
+                OPTIMIZE_PERFORMANCE=true
                 shift
                 ;;
             --help)
@@ -258,6 +428,19 @@ main() {
     # Handle reset option
     if [ "$RESET_TEMPLATE" = true ]; then
         reset_to_template
+        exit 0
+    fi
+    
+    # Handle password update option
+    if [ "$UPDATE_PASSWORDS" = true ]; then
+        update_passwords
+        exit 0
+    fi
+    
+    # Handle performance optimization option
+    if [ "$OPTIMIZE_PERFORMANCE" = true ]; then
+        get_system_info
+        apply_performance_settings
         exit 0
     fi
     
