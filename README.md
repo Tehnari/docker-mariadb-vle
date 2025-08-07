@@ -27,14 +27,21 @@ Crossplatform cases can also be used, BUT carefully (e.g. with the use of the sc
 ### 1. Initial Setup
 ```bash
 cd docker-mariadb-vle
-./setup.sh
 ```
+
+**📖 For detailed setup instructions, see [Setup Guide](docs/SETUP_GUIDE.md)**
 
 ### 2. Configure Environment
 Edit the `.env` file with your database credentials:
 ```bash
 nano .env
 ```
+
+**⚠️ IMPORTANT: First-Time Setup**
+Before starting the container for the first time, ensure you have set a proper root password in the `.env` file:
+- Replace `MYSQL_ROOT_PASSWORD=your_secure_root_password_here` with a real password
+- Example: `MYSQL_ROOT_PASSWORD=my_secure_password_2024`
+- The container will be initialized with this password and cannot be changed without data loss
 
 ### 3. Optimize Performance (Recommended)
 ```bash
@@ -57,6 +64,12 @@ docker compose up -d
 sudo ./install.sh
 sudo systemctl start docker-mariadb-vle
 ```
+
+**📝 Note:** If you encounter authentication errors after the first startup, you may need to:
+1. Stop the container: `docker compose down`
+2. Remove the data directory: `sudo rm -rf data/`
+3. Update the password in `.env` file
+4. Restart: `docker compose up -d`
 
 ### 4. Setup Daily Backups (Optional)
 ```bash

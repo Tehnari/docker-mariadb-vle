@@ -282,6 +282,32 @@ rsync -av ./migrations/exports/ target-server:/path/to/imports/
 
 ### Common Issues and Solutions
 
+#### Issue 0: "Access denied for user 'root'@'localhost'"
+**Symptoms**: 
+- Container starts but scripts fail with authentication errors
+- Migration script shows "MariaDB container is not responding"
+- Backup script fails with connection errors
+
+**Root Cause**: Container was initialized with placeholder password instead of real password
+
+**Solutions**:
+```bash
+# Check current password in .env
+grep MYSQL_ROOT_PASSWORD .env
+
+# If it shows placeholder, update it:
+nano .env
+# Change: MYSQL_ROOT_PASSWORD=your_secure_root_password_here
+# To:    MYSQL_ROOT_PASSWORD=your_actual_password
+
+# Reset container data
+docker compose down
+sudo rm -rf data/
+docker compose up -d
+```
+
+**Prevention**: Always set proper password in `.env` before first container startup
+
 #### Issue 1: "No migration exports found"
 **Symptoms**: Script shows no available migration exports
 **Solutions**:

@@ -4,6 +4,27 @@
 
 The MariaDB VLE project uses a well-organized folder structure to separate different types of data, backups, migrations, and documentation. This guide explains the purpose and usage of each folder.
 
+## ⚠️ Critical Setup Information
+
+### Password Configuration (IMPORTANT)
+**Before starting the container for the first time:**
+1. Open `.env` file: `nano .env`
+2. Replace the placeholder password:
+   ```
+   MYSQL_ROOT_PASSWORD=your_secure_root_password_here
+   ```
+   With a real password:
+   ```
+   MYSQL_ROOT_PASSWORD=my_secure_password_2024
+   ```
+3. Save the file and start the container
+
+**Why this is critical:**
+- The container initializes with the password from `.env`
+- Once initialized, the password cannot be changed without data loss
+- Using placeholder passwords will cause authentication failures
+- If you accidentally use a placeholder, you must reset the container data
+
 ## 🗂️ Folder Structure
 
 ```

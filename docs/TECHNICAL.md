@@ -338,6 +338,17 @@ Use the performance tuner to automatically optimize settings for your system:
 - User-specific database access
 - Backup encryption (optional)
 
+### Initial Setup Security
+**⚠️ CRITICAL: Password Configuration**
+- Never use placeholder passwords in production
+- Always set `MYSQL_ROOT_PASSWORD` to a real password before first container startup
+- The container initializes with the password from `.env` and cannot be changed without data loss
+- If you accidentally use a placeholder password, you must:
+  1. Stop the container: `docker compose down`
+  2. Remove data: `sudo rm -rf data/`
+  3. Update password in `.env`
+  4. Restart: `docker compose up -d`
+
 ## Monitoring and Logging
 
 ### Container Monitoring

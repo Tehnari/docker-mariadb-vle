@@ -159,7 +159,7 @@ show_database_recommendations() {
     
     echo ""
     echo "💡 Performance Tips:"
-    echo "   • Monitor memory usage with: docker stats mariadb-vle"
+            echo "   • Monitor memory usage with: docker stats \${INSTANCE_NAME:-mariadb-vle}"
     echo "   • Check slow queries: docker compose exec mariadb mariadb -u root -p -e 'SHOW VARIABLES LIKE \"slow_query_log\";'"
     echo "   • Optimize queries and add indexes for better performance"
     echo "   • Consider SSD storage for better I/O performance"

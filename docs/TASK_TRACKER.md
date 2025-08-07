@@ -53,6 +53,50 @@
   - ✅ Backup creation successful (5.0MB backup file)
 - **Documentation Status**: ✅ All documentation updated and current
 
+### Critical Issue Resolution - Database Migration Script
+- **Date**: 2024-12-01
+- **Status**: ✅ RESOLVED
+- **Issue**: Database migration script was not working due to root password authentication failure
+- **Root Cause**: Container was initialized with placeholder password `your_secure_root_password_here` instead of actual password
+- **Solution**:
+  - ✅ Updated `.env` file with proper root password: `mariadb_root_password_2024`
+  - ✅ Removed old container data directory to force re-initialization
+  - ✅ Restarted container with new password configuration
+  - ✅ Verified all scripts now working correctly
+- **Verification**:
+  - ✅ Database migration script starts and shows menu correctly
+  - ✅ Source availability check working properly
+  - ✅ Container health checks passing
+  - ✅ All import/export features functional
+  - ✅ Backup system working with new password
+- **Impact**: All database migration functionality now operational
+
+### Documentation Update - Password Configuration Warning
+- **Date**: 2024-12-01
+- **Status**: ✅ COMPLETED
+- **Description**: Added comprehensive documentation about critical password configuration requirements
+- **Changes**:
+  - ✅ Created new `docs/SETUP_GUIDE.md` with detailed setup instructions
+  - ✅ Added critical password configuration warnings to `README.md`
+  - ✅ Updated `docs/MIGRATION_USER_GUIDE.md` with troubleshooting section
+  - ✅ Added security considerations to `docs/TECHNICAL.md`
+  - ✅ Updated `docs/FOLDER_STRUCTURE.md` with setup information
+  - ✅ Updated `docs/INDEX.md` to include new setup guide
+- **Key Additions**:
+  - ✅ Critical warning about placeholder passwords
+  - ✅ Step-by-step password configuration instructions
+  - ✅ Troubleshooting guide for authentication issues
+  - ✅ Prevention measures for common setup mistakes
+  - ✅ Verification checklist for successful setup
+- **Files Created/Modified**:
+  - `docs/SETUP_GUIDE.md` - New comprehensive setup guide
+  - `README.md` - Added critical setup warnings
+  - `docs/MIGRATION_USER_GUIDE.md` - Added authentication troubleshooting
+  - `docs/TECHNICAL.md` - Added security considerations
+  - `docs/FOLDER_STRUCTURE.md` - Added setup information
+  - `docs/INDEX.md` - Updated documentation index
+- **Impact**: Users will now be properly warned about password configuration before first startup
+
 ### 1. Fixed pv Command Error
 - **Issue**: `pv: -s: integer argument expected`
 - **Root Cause**: Script was passing decimal values (1.7M) to pv, but pv expects integers

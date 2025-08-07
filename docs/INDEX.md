@@ -15,6 +15,15 @@ This directory contains comprehensive documentation for the MariaDB VLE project.
 - Performance optimization tips
 - Performance tuner for system analysis
 
+### [SETUP_GUIDE.md](./SETUP_GUIDE.md)
+**Setup Documentation** - Comprehensive setup guide with:
+- Step-by-step installation instructions
+- Critical password configuration requirements
+- Troubleshooting common setup issues
+- Security considerations
+- Verification checklist
+- Advanced configuration options
+
 ### [TECHNICAL.md](./TECHNICAL.md)
 **Technical Documentation** - Developer and administrator guide with:
 - Architecture overview
