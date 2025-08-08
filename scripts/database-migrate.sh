@@ -391,6 +391,68 @@ drop_database() {
     fi
 }
 
+# Function to list all users in the database
+list_database_users() {
+    print_status "Listing all users in the database..."
+    
+    local users=$(docker compose exec -T mariadb mariadb -u root -p"${MYSQL_ROOT_PASSWORD}" -e "SELECT User, Host FROM mysql.user WHERE User NOT IN ('root', 'debian-sys-maint', 'mysql.sys', 'mysql.session', 'mysql.infoschema') ORDER BY User;" 2>/dev/null)
+    
+    if [ -z "$users" ] || echo "$users" | grep -q "Empty set"; then
+        print_warning "No custom users found in the database"
+        echo "Only system users exist (root, debian-sys-maint, etc.)"
+    else
+        echo "Available users:"
+        echo "$users" | while read -r line; do
+            if [[ "$line" != "User"* ]]; then
+                echo "  - $line"
+            fi
+        done
+    fi
+}
+
+# Function to change password for existing user
+change_user_password() {
+    local username="$1"
+    
+    print_status "Changing password for user '$username'..."
+    
+    # Check if user exists
+    local user_exists=$(docker compose exec -T mariadb mariadb -u root -p"${MYSQL_ROOT_PASSWORD}" -e "SELECT COUNT(*) FROM mysql.user WHERE User='$username';" 2>/dev/null | tail -n 1)
+    
+    if [ "$user_exists" -eq 0 ]; then
+        print_error "User '$username' does not exist in the database"
+        return 1
+    fi
+    
+    # Get new password with confirmation
+    read -s -p "Enter new password for user '$username': " NEW_PASSWORD
+    echo ""
+    read -s -p "Confirm new password: " CONFIRM_PASSWORD
+    echo ""
+    
+    if [ "$NEW_PASSWORD" != "$CONFIRM_PASSWORD" ]; then
+        print_error "Passwords do not match"
+        return 1
+    fi
+    
+    if [ -z "$NEW_PASSWORD" ]; then
+        print_error "Password cannot be empty"
+        return 1
+    fi
+    
+    # Change password
+    print_status "Updating password for user '$username'..."
+    docker compose exec -T mariadb mariadb -u root -p"${MYSQL_ROOT_PASSWORD}" -e "ALTER USER '$username'@'%' IDENTIFIED BY '$NEW_PASSWORD';"
+    
+    if [ $? -eq 0 ]; then
+        print_status "✓ Password updated successfully for user '$username'"
+        return 0
+    else
+        print_error "Failed to update password for user '$username'"
+        return 1
+    fi
+}
+
 # Function to check database permissions for a user
 check_database_permissions() {
     local database="$1"
@@ -503,41 +565,99 @@ check_and_apply_permissions() {
     echo "1. Check current permissions"
     echo "2. Apply permissions for environment user"
     echo "3. Apply permissions for custom user"
-    echo "4. Back to main menu"
+    echo "4. List all database users"
+    echo "5. Change password for existing user"
+    echo "6. Back to main menu"
     echo ""
     
-    read -p "Select option (1-4): " PERM_CHOICE
+    read -p "Select option (1-6): " PERM_CHOICE
     
     case $PERM_CHOICE in
         1)
-            # Check permissions for environment user
+            # Check permissions for environment user (avoid exit on non-zero with set -e)
             if [ -n "$MYSQL_USER" ]; then
-                check_database_permissions "$selected_db" "$MYSQL_USER"
+                if check_database_permissions "$selected_db" "$MYSQL_USER"; then
+                    :
+                else
+                    print_warning "Environment user '$MYSQL_USER' lacks required permissions on '$selected_db'"
+                fi
             else
                 print_error "MYSQL_USER not defined in environment"
+                print_status "Available environment variables:"
+                print_status "  MYSQL_USER: $MYSQL_USER"
+                print_status "  MYSQL_PASSWORD: [hidden]"
             fi
             ;;
         2)
             # Apply permissions for environment user
             if [ -n "$MYSQL_USER" ] && [ -n "$MYSQL_PASSWORD" ]; then
-                apply_database_permissions "$selected_db" "$MYSQL_USER" "$MYSQL_PASSWORD"
+                if apply_database_permissions "$selected_db" "$MYSQL_USER" "$MYSQL_PASSWORD"; then
+                    print_status "✓ Permissions applied successfully"
+                else
+                    print_error "Failed to apply permissions"
+                fi
             else
                 print_error "MYSQL_USER or MYSQL_PASSWORD not defined in environment"
+                print_status "Available environment variables:"
+                print_status "  MYSQL_USER: $MYSQL_USER"
+                print_status "  MYSQL_PASSWORD: [hidden]"
+                print_status ""
+                print_status "Please check your .env file and ensure both variables are set"
             fi
             ;;
         3)
             # Apply permissions for custom user
             read -p "Enter username: " CUSTOM_USER
+            
+            if [ -z "$CUSTOM_USER" ]; then
+                print_error "Username cannot be empty"
+                return 1
+            fi
+            
+            # Get password with confirmation
             read -s -p "Enter password: " CUSTOM_PASSWORD
             echo ""
+            read -s -p "Confirm password: " CONFIRM_PASSWORD
+            echo ""
+            
+            if [ "$CUSTOM_PASSWORD" != "$CONFIRM_PASSWORD" ]; then
+                print_error "Passwords do not match"
+                return 1
+            fi
+            
+            if [ -z "$CUSTOM_PASSWORD" ]; then
+                print_error "Password cannot be empty"
+                return 1
+            fi
             
             if [ -n "$CUSTOM_USER" ] && [ -n "$CUSTOM_PASSWORD" ]; then
-                apply_database_permissions "$selected_db" "$CUSTOM_USER" "$CUSTOM_PASSWORD"
+                if apply_database_permissions "$selected_db" "$CUSTOM_USER" "$CUSTOM_PASSWORD"; then
+                    print_status "✓ Permissions applied successfully"
+                else
+                    print_error "Failed to apply permissions"
+                fi
             else
                 print_error "Username and password are required"
             fi
             ;;
         4)
+            # List all database users
+            list_database_users
+            ;;
+        5)
+            # Change password for existing user
+            list_database_users
+            echo ""
+            read -p "Enter username to change password: " CHANGE_USER
+            
+            if [ -z "$CHANGE_USER" ]; then
+                print_error "Username cannot be empty"
+                return 1
+            fi
+            
+            change_user_password "$CHANGE_USER"
+            ;;
+        6)
             return 0
             ;;
         *)
@@ -545,6 +665,10 @@ check_and_apply_permissions() {
             return 1
             ;;
     esac
+    
+    # Add pause after operations to prevent script from ending immediately
+    echo ""
+    read -p "Press Enter to continue..."
 }
 
 # Function to apply permissions after successful migration

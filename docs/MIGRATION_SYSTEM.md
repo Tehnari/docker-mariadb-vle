@@ -99,14 +99,42 @@ The migration system includes comprehensive permission management to ensure that
 - **Permission Checking** - Verify current user permissions with detailed output
 - **User Creation** - Automatically creates users if they don't exist
 - **Privilege Flushing** - Ensures permissions are immediately available
+- **User Listing** - List all database users (excluding system users)
+- **Password Management** - Change passwords for existing users with confirmation
+- **Password Confirmation** - Double password entry for custom users to prevent typos
+- **Enhanced Error Handling** - Better feedback for missing environment variables
 
 ### Permission Management Menu
 When selecting option 10 "Manage database permissions", you can:
 
 1. **Check current permissions** - Verify if environment user has access to selected database
 2. **Apply permissions for environment user** - Grant permissions using `MYSQL_USER`/`MYSQL_PASSWORD`
-3. **Apply permissions for custom user** - Grant permissions for manually specified user
-4. **Back to main menu** - Return to main migration menu
+3. **Apply permissions for custom user** - Grant permissions for manually specified user (with password confirmation)
+4. **List all database users** - Show all custom users in the database (excluding system users)
+5. **Change password for existing user** - Change password for any existing user with confirmation
+6. **Back to main menu** - Return to main migration menu
+
+### Enhanced User Management
+
+#### User Listing
+- Lists all custom users in the database
+- Excludes system users (root, debian-sys-maint, mysql.sys, etc.)
+- Shows username and host information
+- Provides clear feedback when no custom users exist
+
+#### Password Change Functionality
+- Select from list of existing users
+- Enter new password with confirmation
+- Validates password match and non-empty values
+- Updates password using `ALTER USER` command
+- Provides success/failure feedback
+
+#### Custom User Creation
+- Enter username and password with confirmation
+- Validates input (non-empty username/password)
+- Creates user if it doesn't exist
+- Grants permissions on selected database
+- Provides detailed feedback on each step
 
 ### Automatic Permission Application
 After successful migrations (single database, SQL dump, migration export), the system automatically:
@@ -114,6 +142,13 @@ After successful migrations (single database, SQL dump, migration export), the s
 - Creates the user if it doesn't exist
 - Grants all privileges on the migrated database
 - Flushes privileges to ensure immediate availability
+
+### Environment Variable Handling
+The system now provides better feedback when environment variables are missing:
+- Shows available environment variables
+- Indicates which variables are missing
+- Provides guidance on how to fix the issue
+- Continues operation with custom user input
 
 ### Example Workflow
 ```bash
@@ -125,10 +160,22 @@ After successful migrations (single database, SQL dump, migration export), the s
 # 2. Check permissions (automatic after migration)
 # System automatically applies permissions for MYSQL_USER
 
-# 3. Verify permissions manually
+# 3. Manage permissions manually
 # Select option 10: Manage database permissions
-# Choose database and option 1: Check current permissions
+# Choose database and explore options:
+#   - Option 1: Check current permissions
+#   - Option 2: Apply permissions for environment user
+#   - Option 3: Apply permissions for custom user (with confirmation)
+#   - Option 4: List all database users
+#   - Option 5: Change password for existing user
 ```
+
+### Password Security Features
+- **Double Entry**: All custom user passwords require confirmation
+- **Validation**: Checks for empty passwords and mismatched confirmations
+- **Secure Input**: Uses `read -s` for password input (hidden on screen)
+- **Error Handling**: Clear error messages for invalid input
+- **User Verification**: Checks if user exists before password changes
 
 ### Source Database Availability Check
 The migration script automatically checks source database availability at startup:

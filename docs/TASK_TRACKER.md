@@ -121,6 +121,7 @@
 - ✅ **Large database support** (25GB+ optimized)
 - ✅ **Character set optimization** (utf8mb4)
 - ✅ **InnoDB configuration** for optimal performance
+ - ✅ **Advanced flags**: `--buffer-pool-percent 50-70` and `--target-clients N` (for 500+ clients)
 
 ---
 

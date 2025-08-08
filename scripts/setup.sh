@@ -87,27 +87,40 @@ get_system_info() {
 calculate_performance_settings() {
     print_status "Calculating performance settings..."
     
-    # Calculate InnoDB Buffer Pool Size (conservative values for stable operation)
-    if [ "$TOTAL_RAM" -gt 16384 ]; then
-        # Very large system (>16GB RAM) - balanced for large databases
-        INNODB_BUFFER_POOL_SIZE=16384
-        print_status "Very large system detected (>16GB RAM)"
-        print_status "Recommended InnoDB Buffer Pool: ${INNODB_BUFFER_POOL_SIZE}M (balanced for large databases)"
-    elif [ "$TOTAL_RAM" -gt 8192 ]; then
-        # Large system (8-16GB RAM) - max 4GB buffer pool
-        INNODB_BUFFER_POOL_SIZE=4096
-        print_status "Large system detected (8-16GB RAM)"
-        print_status "Recommended InnoDB Buffer Pool: ${INNODB_BUFFER_POOL_SIZE}M (conservative)"
-    elif [ "$TOTAL_RAM" -gt 4096 ]; then
-        # Medium system (4-8GB RAM) - max 2GB buffer pool
-        INNODB_BUFFER_POOL_SIZE=2048
-        print_status "Medium system detected (4-8GB RAM)"
-        print_status "Recommended InnoDB Buffer Pool: ${INNODB_BUFFER_POOL_SIZE}M (conservative)"
-    else
-        # Small system (<4GB RAM) - max 1GB buffer pool
-        INNODB_BUFFER_POOL_SIZE=1024
-        print_status "Small system detected (<4GB RAM)"
-        print_status "Recommended InnoDB Buffer Pool: ${INNODB_BUFFER_POOL_SIZE}M (conservative)"
+    # If user provided a buffer pool percentage (50-70), use it
+    if [ -n "$BUFFER_POOL_PERCENT" ]; then
+        if [[ ! "$BUFFER_POOL_PERCENT" =~ ^[0-9]+$ ]] || [ "$BUFFER_POOL_PERCENT" -lt 50 ] || [ "$BUFFER_POOL_PERCENT" -gt 70 ]; then
+            print_warning "Invalid --buffer-pool-percent value '$BUFFER_POOL_PERCENT'. Falling back to automatic sizing."
+        else
+            INNODB_BUFFER_POOL_SIZE=$(( TOTAL_RAM * BUFFER_POOL_PERCENT / 100 ))
+            print_status "Using buffer pool percent: ${BUFFER_POOL_PERCENT}% of RAM → ${INNODB_BUFFER_POOL_SIZE}M"
+        fi
+    fi
+
+    # Automatic sizing if not set via percent
+    if [ -z "$INNODB_BUFFER_POOL_SIZE" ]; then
+        # Calculate InnoDB Buffer Pool Size (conservative values for stable operation)
+        if [ "$TOTAL_RAM" -gt 16384 ]; then
+            # Very large system (>16GB RAM) - balanced for large databases
+            INNODB_BUFFER_POOL_SIZE=16384
+            print_status "Very large system detected (>16GB RAM)"
+            print_status "Recommended InnoDB Buffer Pool: ${INNODB_BUFFER_POOL_SIZE}M (balanced for large databases)"
+        elif [ "$TOTAL_RAM" -gt 8192 ]; then
+            # Large system (8-16GB RAM) - max 4GB buffer pool
+            INNODB_BUFFER_POOL_SIZE=4096
+            print_status "Large system detected (8-16GB RAM)"
+            print_status "Recommended InnoDB Buffer Pool: ${INNODB_BUFFER_POOL_SIZE}M (conservative)"
+        elif [ "$TOTAL_RAM" -gt 4096 ]; then
+            # Medium system (4-8GB RAM) - max 2GB buffer pool
+            INNODB_BUFFER_POOL_SIZE=2048
+            print_status "Medium system detected (4-8GB RAM)"
+            print_status "Recommended InnoDB Buffer Pool: ${INNODB_BUFFER_POOL_SIZE}M (conservative)"
+        else
+            # Small system (<4GB RAM) - max 1GB buffer pool
+            INNODB_BUFFER_POOL_SIZE=1024
+            print_status "Small system detected (<4GB RAM)"
+            print_status "Recommended InnoDB Buffer Pool: ${INNODB_BUFFER_POOL_SIZE}M (conservative)"
+        fi
     fi
     
     # Calculate InnoDB Log File Size (balanced: 25% of buffer pool, max 2GB for large databases)
@@ -117,12 +130,28 @@ calculate_performance_settings() {
     fi
     print_status "Recommended InnoDB Log File Size: ${INNODB_LOG_FILE_SIZE}M (balanced for large databases)"
     
-    # Calculate Max Connections (balanced: CPU cores × 40, max 800 for large databases)
-    MAX_CONNECTIONS=$((CPU_CORES * 40))
-    if [ "$MAX_CONNECTIONS" -gt 800 ]; then
-        MAX_CONNECTIONS=800
+    # Calculate Max Connections
+    local base_connections=$((CPU_CORES * 40))
+    MAX_CONNECTIONS=$base_connections
+    
+    # If target clients provided, ensure we meet or exceed it
+    if [ -n "$TARGET_CLIENTS" ]; then
+        if [[ "$TARGET_CLIENTS" =~ ^[0-9]+$ ]] && [ "$TARGET_CLIENTS" -gt 0 ]; then
+            if [ "$TARGET_CLIENTS" -gt "$MAX_CONNECTIONS" ]; then
+                MAX_CONNECTIONS=$TARGET_CLIENTS
+            fi
+        else
+            print_warning "Invalid --target-clients value '$TARGET_CLIENTS'. Using computed value ${MAX_CONNECTIONS}."
+        fi
     fi
-    print_status "Recommended Max Connections: ${MAX_CONNECTIONS} (balanced for large databases)"
+    
+    # Apply an upper safety cap to prevent extreme settings
+    local max_cap=5000
+    if [ "$MAX_CONNECTIONS" -gt "$max_cap" ]; then
+        print_warning "Capping max_connections from ${MAX_CONNECTIONS} to ${max_cap} to avoid excessive resource usage"
+        MAX_CONNECTIONS=$max_cap
+    fi
+    print_status "Max Connections set to: ${MAX_CONNECTIONS} (CPU baseline ${base_connections}${TARGET_CLIENTS:+, target ${TARGET_CLIENTS}})"
     
     # Calculate other settings
     QUERY_CACHE_SIZE=128
@@ -192,6 +221,8 @@ show_usage() {
     echo "  --reset                Reset to template level (remove all configuration)"
     echo "  --update-passwords     Generate new secure passwords for .env.example"
     echo "  --optimize-performance Analyze system and apply performance settings"
+    echo "  --buffer-pool-percent P Set InnoDB buffer pool to P% of total RAM (50-70)"
+    echo "  --target-clients N     Target concurrent clients (influences max_connections)"
     echo "  --help                 Show this help"
     echo ""
     echo "Examples:"
@@ -202,6 +233,7 @@ show_usage() {
     echo "  $0 --reset                            # Reset to template level"
     echo "  $0 --update-passwords                 # Generate new passwords"
     echo "  $0 --optimize-performance            # Analyze and optimize performance"
+    echo "  $0 --optimize-performance --buffer-pool-percent 60 --target-clients 800"
 }
 
 setup_instance() {
@@ -369,6 +401,8 @@ main() {
     RESET_TEMPLATE=false
     UPDATE_PASSWORDS=false
     OPTIMIZE_PERFORMANCE=false
+    BUFFER_POOL_PERCENT=""
+    TARGET_CLIENTS=""
     
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -400,6 +434,14 @@ main() {
             --optimize-performance)
                 OPTIMIZE_PERFORMANCE=true
                 shift
+                ;;
+            --buffer-pool-percent)
+                BUFFER_POOL_PERCENT="$2"
+                shift 2
+                ;;
+            --target-clients)
+                TARGET_CLIENTS="$2"
+                shift 2
                 ;;
             --help)
                 show_usage

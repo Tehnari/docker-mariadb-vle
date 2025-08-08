@@ -24,6 +24,7 @@
 - **Integrated Workflow**: Part of setup script
 - **Automatic Application**: Updates .env directly
 - **Large System Support**: Up to 16GB buffer pool for 32GB+ RAM systems
+ - **New Flags**: `--buffer-pool-percent` (50–70% of RAM) and `--target-clients` (raise `max_connections` for 500+ clients, safety cap 5000)
 
 #### **Reset Functionality Enhancement**
 - **Complete Cleanup**: Removes all generated files and backup files
@@ -41,6 +42,7 @@
 - **Reset Functionality**: Return to template state
 - **Password Generation**: Secure MariaDB-compatible passwords
 - **Performance Optimization**: Integrated system analysis and optimization
+ - **Performance Tuner Script**: Deprecated and removed in favor of `scripts/setup.sh --optimize-performance`
 
 #### **Configuration Management**
 - **Environment Variables**: Consistent variables between .env and .env.example
@@ -112,7 +114,7 @@
 ### 📋 **Workflow Examples**
 
 #### **Production Setup**
-```bash
+   ```bash
 # 1. Generate new secure passwords
 ./scripts/setup.sh --update-passwords
 
@@ -127,15 +129,15 @@ docker compose up -d
 ```
 
 #### **Development Setup**
-```bash
+   ```bash
 # Quick development setup
 ./scripts/setup.sh --instance-name dev --port 3368
 ./scripts/setup.sh --optimize-performance
 docker compose up -d
-```
+   ```
 
 #### **Reset to Template**
-```bash
+   ```bash
 # Reset everything to template state
 ./scripts/setup.sh --reset
 

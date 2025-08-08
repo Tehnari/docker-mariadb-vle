@@ -171,7 +171,7 @@ docker-mariadb-vle/
 │   ├── database-migrate.sh         # Migration tools
 │   ├── database-export.sh          # Export tools
 │   ├── backup-*.sh                # Backup scripts
-│   └── performance-tuner.sh        # Performance optimization
+│   └── (deprecated) performance-tuner.sh
 ├── docker-compose.template.yml     # Template for docker-compose
 ├── docker-mariadb-vle.service.template  # Template for systemd
 ├── .env.example                   # Environment template
@@ -207,8 +207,12 @@ docker compose ps
 
 ### **Performance Management**
 ```bash
-# Performance optimization
+# Performance optimization (from setup script)
 ./scripts/setup.sh --optimize-performance
+
+# Advanced flags
+./scripts/setup.sh --optimize-performance --buffer-pool-percent 60
+./scripts/setup.sh --optimize-performance --target-clients 1000
 
 # Monitor performance
 docker stats ${INSTANCE_NAME:-mariadb-vle}

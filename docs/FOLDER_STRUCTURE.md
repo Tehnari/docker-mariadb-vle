@@ -370,7 +370,7 @@ scripts/
 ├── database-*.sh             # Database management scripts
 │   ├── database-migrate.sh  # Migration tool
 │   └── database-export.sh   # Export tool
-├── performance-tuner.sh      # System analysis and optimization
+├── (deprecated) performance-tuner.sh
 ├── backup-*.sh               # Backup management scripts
 │   ├── backup-create.sh     # Create manual backup
 │   ├── backup-daily.sh      # Automated daily backup

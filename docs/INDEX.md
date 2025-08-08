@@ -13,7 +13,8 @@ This directory contains comprehensive documentation for the MariaDB VLE project.
 - Troubleshooting guide
 - Security best practices
 - Performance optimization tips
-- Performance tuner for system analysis
+  
+  Performance optimization is handled via `scripts/setup.sh --optimize-performance`.
 
 ### [SETUP_GUIDE.md](./SETUP_GUIDE.md)
 **Setup Documentation** - Comprehensive setup guide with:

@@ -550,6 +550,147 @@ After successful migrations (single database, SQL dump, migration export), the s
 
 **Note**: If `MYSQL_USER` or `MYSQL_PASSWORD` are not defined, the system will show a warning and skip permission application.
 
+## Permission Management
+
+The migration system includes comprehensive permission management features to ensure proper database access for application users.
+
+### Permission Management Menu
+
+When you select "10. Manage database permissions" from the main menu, you'll see these options:
+
+1. **Check current permissions** - Verify if environment user has access to selected database
+2. **Apply permissions for environment user** - Grant permissions using `MYSQL_USER`/`MYSQL_PASSWORD`
+3. **Apply permissions for custom user** - Grant permissions for manually specified user (with password confirmation)
+4. **List all database users** - Show all custom users in the database (excluding system users)
+5. **Change password for existing user** - Change password for any existing user with confirmation
+6. **Back to main menu** - Return to main migration menu
+
+### Environment User Management
+
+#### Option 1: Check Current Permissions
+- Verifies if the environment user (`MYSQL_USER`) has permissions on the selected database
+- Shows current grants for the user
+- Provides clear feedback on permission status
+
+#### Option 2: Apply Permissions for Environment User
+- Uses `MYSQL_USER` and `MYSQL_PASSWORD` from your `.env` file
+- Creates the user if it doesn't exist
+- Grants all privileges on the selected database
+- Provides detailed feedback on each step
+- Shows helpful error messages if environment variables are missing
+
+### Custom User Management
+
+#### Option 3: Apply Permissions for Custom User
+**Enhanced with password confirmation:**
+1. Enter username (validated for non-empty input)
+2. Enter password (hidden input)
+3. Confirm password (hidden input)
+4. System validates password match
+5. Creates user if it doesn't exist
+6. Grants permissions on selected database
+7. Provides detailed success/failure feedback
+
+**Example:**
+```bash
+Enter username: myapp_user
+Enter password: ********
+Confirm password: ********
+✓ User 'myapp_user' created successfully
+✓ Permissions granted successfully
+✓ Privileges flushed successfully
+✓ Database permissions applied successfully
+```
+
+#### Option 4: List All Database Users
+- Shows all custom users in the database
+- Excludes system users (root, debian-sys-maint, etc.)
+- Displays username and host information
+- Provides clear feedback when no custom users exist
+
+**Example output:**
+```
+Available users:
+  - myapp_user    %
+  - test_user     %
+  - admin_user    %
+```
+
+#### Option 5: Change Password for Existing User
+1. Lists all available users
+2. Enter username to change password for
+3. Enter new password (hidden input)
+4. Confirm new password (hidden input)
+5. System validates password match
+6. Updates password using `ALTER USER` command
+7. Provides success/failure feedback
+
+**Example:**
+```bash
+Available users:
+  - myapp_user    %
+  - test_user     %
+
+Enter username to change password: myapp_user
+Enter new password for user 'myapp_user': ********
+Confirm new password: ********
+✓ Password updated successfully for user 'myapp_user'
+```
+
+### Enhanced Error Handling
+
+#### Missing Environment Variables
+If `MYSQL_USER` or `MYSQL_PASSWORD` are not defined in your `.env` file, the system provides helpful feedback:
+
+```bash
+MYSQL_USER or MYSQL_PASSWORD not defined in environment
+Available environment variables:
+  MYSQL_USER: 
+  MYSQL_PASSWORD: [hidden]
+
+Please check your .env file and ensure both variables are set
+```
+
+#### Password Validation
+- **Empty passwords**: System prevents empty password creation
+- **Mismatched passwords**: Clear error message when passwords don't match
+- **User verification**: Checks if user exists before password changes
+- **Secure input**: Passwords are hidden during entry
+
+### Automatic Permission Application
+
+After successful migrations, the system automatically:
+1. Checks if `MYSQL_USER` and `MYSQL_PASSWORD` are defined
+2. Creates the user if it doesn't exist
+3. Grants all privileges on the migrated database
+4. Flushes privileges for immediate availability
+5. Provides feedback on the process
+
+### Best Practices
+
+1. **Use Environment Variables**: Set `MYSQL_USER` and `MYSQL_PASSWORD` in your `.env` file for automatic permission application
+2. **Password Security**: Use strong passwords and confirm them carefully
+3. **User Management**: Use the listing feature to keep track of database users
+4. **Regular Updates**: Change passwords periodically using the password change feature
+5. **Permission Verification**: Use the check permissions feature to verify access rights
+
+### Troubleshooting
+
+#### "User does not exist" Error
+- Use Option 4 to list existing users
+- Check if the username is spelled correctly
+- Create the user using Option 3 if needed
+
+#### "Passwords do not match" Error
+- Carefully re-enter the password and confirmation
+- Ensure caps lock is not accidentally enabled
+- Check for extra spaces in the password
+
+#### "MYSQL_USER not defined" Error
+- Check your `.env` file for `MYSQL_USER` and `MYSQL_PASSWORD` variables
+- Ensure both variables are set and not empty
+- Use Option 3 to create custom users if environment variables are not available
+
 ---
 
 **Need Help?** Check the main documentation in `docs/MIGRATION_SYSTEM.md` for technical details and troubleshooting.

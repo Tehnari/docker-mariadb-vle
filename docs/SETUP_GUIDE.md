@@ -62,6 +62,22 @@ docker compose up -d
 # - Create backup of current settings
 ```
 
+### **Advanced Performance Flags**
+```bash
+# Set buffer pool to a percentage of total RAM (allowed: 50-70)
+./scripts/setup.sh --optimize-performance --buffer-pool-percent 60
+
+# Target 500+ concurrent clients (sets max_connections at least to target)
+./scripts/setup.sh --optimize-performance --target-clients 800
+
+# Combine both
+./scripts/setup.sh --optimize-performance --buffer-pool-percent 65 --target-clients 1200
+```
+
+Notes:
+- **--buffer-pool-percent P**: P must be an integer between 50 and 70 (inclusive). This directly sets `innodb_buffer_pool_size` to P% of total RAM (in MB).
+- **--target-clients N**: Ensures `max_connections` is at least N. Baseline remains `CPU cores × 40`. A safety cap of 5000 is applied.
+
 ## 📋 **Step-by-Step Setup**
 
 ### **Step 1: Initial Setup**
@@ -203,7 +219,7 @@ Automatically calculated based on system resources:
 
 - **Buffer Pool**: Up to 16GB for large systems (>16GB RAM)
 - **Log File Size**: Up to 2GB for large databases
-- **Max Connections**: CPU cores × 40 (max 800)
+- **Max Connections**: CPU cores × 40 (baseline). Can be increased via `--target-clients` for 500+ clients (capped at 5000).
 - **Conservative Values**: Safe for production use
 
 ### **Password Security**
